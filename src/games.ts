@@ -10,8 +10,8 @@ export interface Game {
   art: { cover: string | null; hero: string | null; logo: string | null };
 }
 
-/** Local artwork path as a URL the webview can load, or null. */
-export const artUrl = (path: string | null) => (path ? convertFileSrc(path) : null);
+/** Artwork as a URL the webview can load: Epic art is already https, Steam art is a local file. */
+export const artUrl = (path: string | null) => (!path ? null : path.startsWith("https://") ? path : convertFileSrc(path));
 
 export type Cheat =
   | { kind: "toggle"; name: string; key: string; section: string }

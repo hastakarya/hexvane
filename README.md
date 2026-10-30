@@ -13,6 +13,8 @@ A free desktop trainer app for **single-player PC games**. Hexvane finds the gam
 | Detect installed Steam games (all library folders) | Working |
 | Detect installed Epic and GOG games | Working |
 | Official Steam artwork (cover, banner, logo), read from Steam's local cache | Working |
+| Official Epic artwork (cover, banner, logo when available) from the launcher's catalog cache | Working |
+| GOG artwork | Not started (gradient placeholder) |
 | Library: search, store filter | Working |
 | Game page: cheat toggles, sliders, hotkey chips | UI only |
 | Block online / anti-cheat games | Hard-coded name list |
@@ -87,7 +89,7 @@ src/                  React frontend
   styles.css          Design tokens (Toxic lime palette) and styles
   assets/fonts/       Bundled fonts
 src-tauri/            Rust backend
-  src/games.rs        Steam / Epic / GOG detection and Steam artwork lookup, with tests
+  src/games.rs        Steam / Epic / GOG detection and Steam / Epic artwork lookup, with tests
   src/lib.rs          Tauri setup and commands
   tauri.conf.json     Window, bundle and asset-protocol settings
 ```
@@ -95,10 +97,10 @@ src-tauri/            Rust backend
 ## How game detection works
 
 - **Steam:** reads the Steam folder from the registry, then `steamapps/libraryfolders.vdf` for every library, then each `appmanifest_*.acf`. Artwork comes from `Steam/appcache/librarycache/<appid>/`.
-- **Epic:** reads the launcher manifests in `C:\ProgramData\Epic\EpicGamesLauncher\Data\Manifests\*.item`.
+- **Epic:** reads the launcher manifests in `C:\ProgramData\Epic\EpicGamesLauncher\Data\Manifests\*.item`. Artwork links come from the launcher's catalog cache, `Data\Catalog\catcache.bin` (base64 JSON), matched by `CatalogItemId`.
 - **GOG:** reads `HKLM\SOFTWARE\WOW6432Node\GOG.com\Games` in the registry.
 
-Detection only reads files and registry keys. It makes no network calls.
+Detection only reads local files and registry keys. The one network use is the app window loading Epic artwork from Epic's CDN (`cdn1.epicgames.com`). Steam artwork is local.
 
 ## Known shortcuts
 

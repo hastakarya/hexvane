@@ -1,3 +1,4 @@
+use base64::Engine;
 use serde::Serialize;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -14,7 +15,7 @@ pub struct Game {
     pub art: Art,
 }
 
-/// Local artwork file paths; empty when the store has no cached art for the game.
+/// Artwork as local file paths (Steam cache) or https URLs (Epic CDN); None when the store has none.
 #[derive(Serialize, Debug, PartialEq, Default)]
 pub struct Art {
     pub cover: Option<String>,
@@ -113,17 +114,23 @@ fn parse_acf(text: &str, apps: &Path) -> Option<Game> {
     })
 }
 
+const EPIC_DATA: &str = "C:\\ProgramData\\Epic\\EpicGamesLauncher\\Data";
+
 fn epic_games() -> Vec<Game> {
-    let dir = Path::new("C:\\ProgramData\\Epic\\EpicGamesLauncher\\Data\\Manifests");
-    let Ok(entries) = fs::read_dir(dir) else { return vec![] };
+    let Ok(entries) = fs::read_dir(Path::new(EPIC_DATA).join("Manifests")) else { return vec![] };
+    let catalog = fs::read_to_string(Path::new(EPIC_DATA).join("Catalog\\catcache.bin"))
+        .ok()
+        .and_then(|b64| base64::engine::general_purpose::STANDARD.decode(b64.trim()).ok())
+        .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+        .unwrap_or(serde_json::Value::Null);
     entries
         .flatten()
         .filter(|e| e.path().extension().is_some_and(|x| x == "item"))
-        .filter_map(|e| parse_epic(&fs::read_to_string(e.path()).ok()?))
+        .filter_map(|e| parse_epic(&fs::read_to_string(e.path()).ok()?, &catalog))
         .collect()
 }
 
-fn parse_epic(text: &str) -> Option<Game> {
+fn parse_epic(text: &str, catalog: &serde_json::Value) -> Option<Game> {
     let v: serde_json::Value = serde_json::from_str(text).ok()?;
     let s = |k: &str| v.get(k)?.as_str().map(str::to_owned);
     Some(Game {
@@ -131,8 +138,20 @@ fn parse_epic(text: &str) -> Option<Game> {
         name: s("DisplayName")?,
         store: "Epic",
         install_dir: s("InstallLocation")?,
-        art: Art::default(),
+        art: s("CatalogItemId").map(|item| epic_art(catalog, &item)).unwrap_or_default(),
     })
+}
+
+/// Image URLs (Epic CDN) for a catalog item from the launcher's decoded catcache.bin.
+fn epic_art(catalog: &serde_json::Value, item_id: &str) -> Art {
+    let Some(item) = catalog.as_array().and_then(|items| items.iter().find(|i| i["id"] == item_id)) else { return Art::default() };
+    let images = item["keyImages"].as_array().map(Vec::as_slice).unwrap_or_default();
+    let find = |types: &[&str]| types.iter().find_map(|t| images.iter().find(|i| i["type"] == *t)?["url"].as_str().map(str::to_owned));
+    Art {
+        cover: find(&["DieselGameBoxTall", "OfferImageTall", "Thumbnail"]),
+        hero: find(&["DieselGameBox", "OfferImageWide", "DieselStoreFrontWide"]),
+        logo: find(&["DieselGameBoxLogo"]),
+    }
 }
 
 fn gog_games() -> Vec<Game> {
@@ -199,9 +218,20 @@ mod tests {
 
     #[test]
     fn parses_epic_manifest() {
-        let item = r#"{"AppName":"Fortnite","DisplayName":"Fortnite","InstallLocation":"C:\\Games\\Fortnite"}"#;
-        let g = parse_epic(item).unwrap();
+        let item = r#"{"AppName":"Fortnite","DisplayName":"Fortnite","InstallLocation":"C:\\Games\\Fortnite","CatalogItemId":"abc"}"#;
+        let catalog = serde_json::json!([
+            {"id": "other", "keyImages": [{"type": "DieselGameBoxTall", "url": "https://x/wrong"}]},
+            {"id": "abc", "keyImages": [
+                {"type": "DieselGameBox", "url": "https://x/wide"},
+                {"type": "DieselGameBoxTall", "url": "https://x/tall"}
+            ]}
+        ]);
+        let g = parse_epic(item, &catalog).unwrap();
         assert_eq!((g.id.as_str(), g.store, g.install_dir.as_str()), ("epic:Fortnite", "Epic", "C:\\Games\\Fortnite"));
-        assert!(parse_epic("{}").is_none());
+        assert_eq!(g.art.cover.as_deref(), Some("https://x/tall"));
+        assert_eq!(g.art.hero.as_deref(), Some("https://x/wide"));
+        assert!(g.art.logo.is_none());
+        assert!(parse_epic("{}", &serde_json::Value::Null).is_none());
+        assert_eq!(parse_epic(item, &serde_json::Value::Null).unwrap().art, Art::default());
     }
 }
