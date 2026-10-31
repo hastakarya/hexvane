@@ -1,10 +1,10 @@
 # Hexvane
 
-A free desktop trainer app for **single-player PC games**. Hexvane finds the games installed on your PC and gives each one a page of cheats: toggles, sliders, and hotkeys.
+A free desktop trainer app for **single-player PC games**. Hexvane finds the games installed on your PC and gives supported games a page of cheats.
 
 > Hexvane never attaches to online games or games with anti-cheat. That keeps your accounts safe and keeps other players unaffected.
 
-**Status:** early. Game detection and the interface work. **Graveyard Keeper** has real cheats through a BepInEx plugin; every other game still shows placeholder cheats.
+**Status:** early. Game detection and the interface work. **Graveyard Keeper** has real cheats; other games show "Coming soon".
 
 ## Features
 
@@ -25,7 +25,7 @@ A free desktop trainer app for **single-player PC games**. Hexvane finds the gam
 | Custom dark title bar with own minimise / maximise / close | Working |
 | Onboarding (3 steps, first launch only) | Working |
 | Sign in / sign up forms with validation, or continue as guest | Forms only: no account server yet |
-| Graveyard Keeper cheats: unlimited health, unlimited stamina, add money, give items | Working (needs the Hexvane Bridge plugin, see below) |
+| Graveyard Keeper cheats: unlimited health, unlimited stamina, add money, give items | Working ([details](trainers/GraveyardKeeper/README.md)) |
 | Cheats for other games | Not started (cards show "Coming soon") |
 | In-game hotkeys for cheats | Not started |
 | In-game overlay | Not started (settings preview only) |
@@ -79,17 +79,9 @@ cd src-tauri && cargo test
 npx tsc --noEmit
 ```
 
-## Graveyard Keeper trainer
+## Cheats
 
-Graveyard Keeper is a Unity game, so its cheats run as a [BepInEx 5](https://github.com/BepInEx/BepInEx) plugin, `trainers/GraveyardKeeper`. The plugin listens on `127.0.0.1:47821` (this PC only) and the app sends it one text command per request: `state`, `set health 0|1`, `set stamina 0|1`, `money <amount>` (the game counts in silver: 100 = 1 gold), `give <item id> <count>`, `items` (or `items all` to skip the filter).
-
-To build and install it you need the [.NET 8 SDK](https://dotnet.microsoft.com) (`winget install Microsoft.DotNet.SDK.8`) and BepInEx 5 already installed in the game:
-
-```bash
-cd trainers/GraveyardKeeper && dotnet build -c Release
-```
-
-Copy `bin/Release/net472/Hexvane.Bridge.dll` into `<game folder>/BepInEx/plugins/Hexvane/`, with the game closed. To uninstall, delete that folder. If the game is not in the default Steam folder, build with `-p:GameDir="<game folder>"`.
+Cheats run inside each game as a small plugin that the app talks to over `127.0.0.1`. Hexvane never edits save files. See [trainers/README.md](trainers/README.md) for how it works, the supported games and how to add one.
 
 ## Build an installer
 
@@ -104,8 +96,8 @@ The installer is written to `src-tauri/target/release/bundle/`.
 ```
 src/                  React frontend
   App.tsx             App shell, sidebar and all screens
-  ui.tsx              Shared pieces: logo, toggle, slider, dropdown, artwork
-  games.ts            Game types, Tauri calls, placeholder cheats, blocklist
+  ui.tsx              Shared pieces: logo, toggle, dropdown, artwork
+  games.ts            Game types, Tauri calls, blocklist
   Trainer.tsx         Graveyard Keeper cheat page
   styles.css          Design tokens (Toxic lime palette) and styles
   assets/fonts/       Bundled fonts
@@ -114,6 +106,7 @@ src-tauri/            Rust backend
   src/trainer.rs      Sends commands to the in-game plugin
   src/lib.rs          Tauri setup and commands
   tauri.conf.json     Window, bundle and asset-protocol settings
+trainers/             In-game cheat plugins, one folder per game (see trainers/README.md)
 ```
 
 ## How game detection works
