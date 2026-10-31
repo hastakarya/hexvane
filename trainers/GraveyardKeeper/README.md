@@ -23,9 +23,9 @@ The locks keep working while the game is in the background (the plugin sets `App
 | F8 | Toggle Unlimited Stamina |
 | Ctrl + F12 | Turn every cheat off (panic key, set in Settings > Hotkeys) |
 
-While the game is running, Hexvane registers these keys system-wide, so they work whether the game, Hexvane or another window has focus. When the game closes, Hexvane releases them. Change them in the app: click a key chip and press a new combination. F1 is avoided on purpose: BepInEx Configuration Manager opens on F1.
+While the game is running, Hexvane watches these keys, so they work whether the game, Hexvane or another window has focus. Change them in the app: click a key chip and press a new combination. F1 is avoided on purpose: BepInEx Configuration Manager opens on F1.
 
-A toast appears on screen (Settings > Hotkeys > Hotkey toast picks the corner, or Off), and a short beep plays in game when a hotkey turns a cheat on (high) or off (low). Turn it off with Settings > Hotkeys > Hotkey sound.
+A toast appears on screen (Settings > Hotkeys > Hotkey toast picks the corner, or Off), and Hexvane plays a short beep when a hotkey turns a cheat on (high) or off (low). Turn the beep off with Settings > Hotkeys > Hotkey sound.
 
 ## Commands
 

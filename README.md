@@ -4,7 +4,7 @@ A free desktop trainer app for **single-player PC games**. Hexvane finds the gam
 
 > Hexvane never attaches to online games or games with anti-cheat. That keeps your accounts safe and keeps other players unaffected.
 
-**Status:** early. Game detection and the interface work. **Graveyard Keeper** has real cheats; other games show "Coming soon".
+**Status:** early. Game detection and the interface work. **Graveyard Keeper** and **Ryse: Son of Rome** have real cheats; other games show "Coming soon".
 
 ## Features
 
@@ -27,8 +27,9 @@ A free desktop trainer app for **single-player PC games**. Hexvane finds the gam
 | Onboarding (3 steps, first launch only) | Working |
 | Sign in / sign up forms with validation, or continue as guest | Forms only: no account server yet |
 | Graveyard Keeper cheats: unlimited health, unlimited stamina, add money, give items | Working ([details](trainers/GraveyardKeeper/README.md)) |
+| Ryse: Son of Rome cheats: undead, add valor (campaign only) | Working ([details](trainers/Ryse/README.md)) |
 | Cheats for other games | Not started (cards show "Coming soon") |
-| In-game hotkeys for cheats, panic key and hotkey sound | Working (Graveyard Keeper) |
+| Cheat hotkeys (work whichever window has focus), panic key and hotkey sound | Working |
 | Hotkey toast: "Unlimited Health ON" on screen, in a chosen corner | Working in windowed and borderless games (exclusive fullscreen hides it) |
 | Install, update and remove the game plugin from the app | Working |
 
@@ -83,7 +84,7 @@ npx tsc --noEmit
 
 ## Cheats
 
-Cheats run inside each game as a small plugin that the app talks to over `127.0.0.1`. Hexvane never edits save files. See [trainers/README.md](trainers/README.md) for how it works, the supported games and how to add one.
+Cheats run either as a small plugin inside the game that the app talks to over `127.0.0.1` (Unity games), or as memory patches the app applies to the running game (native games such as Ryse). Hexvane never edits save files or game files. See [trainers/README.md](trainers/README.md) for how it works, the supported games and how to add one.
 
 ## Build an installer
 
@@ -103,12 +104,19 @@ src/                  React frontend
   App.tsx             App shell, sidebar and all screens
   ui.tsx              Shared pieces: logo, toggle, dropdown, artwork
   games.ts            Game types, Tauri calls, blocklist
-  Trainer.tsx         Graveyard Keeper cheat page
+  Trainer.tsx         Graveyard Keeper cheat page, hotkeys
+  Ryse.tsx            Ryse cheat page
+  Toast.tsx           Hotkey toast window and beep
   styles.css          Design tokens (Toxic lime palette) and styles
   assets/fonts/       Bundled fonts
 src-tauri/            Rust backend
   src/games.rs        Steam / Epic / GOG detection and Steam / Epic artwork lookup, with tests
   src/trainer.rs      Sends commands to the in-game plugin
+  src/native.rs       Reads and patches a running game's memory (games without a mod loader)
+  src/ryse.rs         Ryse: Son of Rome cheats
+  src/hotkeys.rs      Cheat hotkeys (keyboard polling)
+  src/plugins.rs      Installs the game plugin from the app
+  examples/ryse_probe.rs  Developer tool for finding values in Ryse's memory
   src/lib.rs          Tauri setup and commands
   tauri.conf.json     Window, bundle and asset-protocol settings
 trainers/             In-game cheat plugins, one folder per game (see trainers/README.md)

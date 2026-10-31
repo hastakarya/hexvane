@@ -1,8 +1,10 @@
-import { register, unregisterAll } from "@tauri-apps/plugin-global-shortcut";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { installPlugin, pluginStatus, trainerSend, uninstallPlugin, type Game, type PluginStatus } from "./games";
-import { showToast } from "./Toast";
+import { isRyse, ryseHotkeys, ryseState } from "./Ryse";
+import { playBeep, showToast } from "./Toast";
 import { HotkeyButton, Toggle } from "./ui";
 
 interface State {
@@ -17,7 +19,8 @@ interface State {
 }
 
 /** Games with a real trainer (a Hexvane Bridge plugin under trainers/). */
-export const hasTrainer = (g: Game) => g.name.toLowerCase() === "graveyard keeper";
+export const isGraveyardKeeper = (g: Game) => g.name.toLowerCase() === "graveyard keeper";
+export const hasTrainer = (g: Game) => isGraveyardKeeper(g) || isRyse(g);
 
 /** Graveyard Keeper money counts in silver: 1 = 1 silver, 100 = 1 gold, 0.01 = 1 copper. */
 function formatMoney(silver: number) {
@@ -63,8 +66,8 @@ export function GraveyardKeeperTrainer({ game }: { game: Game }) {
     <div className="detail-body">
       <div className="cheats">
         <div className="section-label">PLAYER</div>
-        <CheatToggle title="Unlimited Health" cheat="health" value={state?.health} detail={ready ? `${Math.round(state!.hp!)} / ${state!.maxHp}` : undefined} disabled={!state} onChange={(on) => run(`set health ${on ? 1 : 0}`)} />
-        <CheatToggle title="Unlimited Stamina" cheat="stamina" value={state?.stamina} detail={ready ? `${Math.round(state!.energy!)} / ${state!.maxEnergy}` : undefined} disabled={!state} onChange={(on) => run(`set stamina ${on ? 1 : 0}`)} />
+        <CheatToggle title="Unlimited Health" hotkey={GK_HOTKEYS[0]} value={state?.health} detail={ready ? `${Math.round(state!.hp!)} / ${state!.maxHp}` : undefined} disabled={!state} onChange={(on) => run(`set health ${on ? 1 : 0}`)} />
+        <CheatToggle title="Unlimited Stamina" hotkey={GK_HOTKEYS[1]} value={state?.stamina} detail={ready ? `${Math.round(state!.energy!)} / ${state!.maxEnergy}` : undefined} disabled={!state} onChange={(on) => run(`set stamina ${on ? 1 : 0}`)} />
 
         <div className="section-label">MONEY</div>
         <div className="row">
@@ -170,48 +173,57 @@ function PluginPanel({ gameDir }: { gameDir: string }) {
 
 // Hotkeys live in the app (localStorage). useGameHotkeys registers them system-wide, so they work whichever window has focus.
 // Not F1: BepInEx's Configuration Manager, common in modded games, opens on F1.
-const HOTKEYS = [
-  { cheat: "health", title: "Unlimited Health", storageKey: "hotkey:gyk:health", initial: "F7", command: "toggle health" },
-  { cheat: "stamina", title: "Unlimited Stamina", storageKey: "hotkey:gyk:stamina", initial: "F8", command: "toggle stamina" },
-  { cheat: "panic", title: "All cheats", storageKey: "hotkey:Disable all cheats", initial: "Ctrl + F12", command: "off" }, // set in Settings > Hotkeys
+/** A cheat hotkey: `fire` applies it and resolves to the cheat's new state, for the toast. */
+export interface Hotkey { cheat: string; title: string; storageKey: string; initial: string; fire: () => Promise<boolean> }
+
+const PANIC = { cheat: "panic", title: "All cheats", storageKey: "hotkey:Disable all cheats", initial: "Ctrl + F12" }; // set in Settings > Hotkeys
+
+const gkToggle = (cheat: string) => async () => {
+  await trainerSend(`toggle ${cheat}`);
+  return !!JSON.parse(await trainerSend("state"))[cheat];
+};
+const GK_HOTKEYS: Hotkey[] = [
+  { cheat: "health", title: "Unlimited Health", storageKey: "hotkey:gyk:health", initial: "F7", fire: gkToggle("health") },
+  { cheat: "stamina", title: "Unlimited Stamina", storageKey: "hotkey:gyk:stamina", initial: "F8", fire: gkToggle("stamina") },
+  { ...PANIC, fire: () => trainerSend("off").then(() => false) },
 ];
 
-/** Runs a hotkey's command, then shows the toast with the cheat's new state. */
-function fireHotkey(h: (typeof HOTKEYS)[number]) {
-  trainerSend(h.command)
-    .then(() => trainerSend("state"))
-    .then((s) => showToast(h.title, h.cheat !== "panic" && !!JSON.parse(s)[h.cheat]))
-    .catch(() => {});
+/** The hotkeys for whichever supported game is running right now, or null. */
+async function activeHotkeys(games: Game[]): Promise<Hotkey[] | null> {
+  if (await trainerSend("ping").then(() => true, () => false)) return GK_HOTKEYS;
+  const ryse = games.find(isRyse);
+  if (ryse && (await ryseState(ryse.installDir).catch(() => null))?.running) return ryseHotkeys(ryse.installDir);
+  return null;
 }
 
 /**
- * While Graveyard Keeper is running, holds the cheat hotkeys as global shortcuts and forwards presses to the plugin.
- * Released when the game closes, so F7 and friends go back to other apps. Mounted once at the app root.
+ * While a supported game runs, watches its cheat hotkeys (the Rust side polls the keyboard, see hotkeys.rs) and applies
+ * them on press, whichever window has focus. Off when no supported game runs. Mounted once at the app root.
  */
-export function useGameHotkeys() {
+export function useGameHotkeys(games: Game[] | null) {
+  const gamesRef = useRef(games ?? []);
+  gamesRef.current = games ?? [];
   useEffect(() => {
-    let registered = ""; // the key set currently held, "" when none
+    let active: Hotkey[] = [];
+    let watching = ""; // the key set being watched, "" when none
     let busy = false;
+    const stop = listen<string>("hotkey", ({ payload }) => {
+      const h = active.find((k) => k.storageKey === payload);
+      h?.fire().then((on) => { showToast(h.title, on); playBeep(on); }, () => {});
+    });
     const tick = async () => {
       if (busy) return;
       busy = true;
       try {
-        const up = await trainerSend("ping").then(() => true, () => false);
-        const keys = HOTKEYS.map((h) => stored(h.storageKey, h.initial));
-        const sound = stored("toggle:Hotkey sound", true);
-        const want = up ? `${keys.join("|")}|${sound}` : ""; // picks up changes made in Settings too
-        if (want === registered) return;
-        await unregisterAll();
-        registered = "";
-        if (!up) return;
-        for (const [i, h] of HOTKEYS.entries()) {
-          // "Ctrl + Shift + F7" (app label) -> "Ctrl+Shift+F7" (accelerator)
-          await register(keys[i].replace(/\s/g, ""), (e) => {
-            if (e.state === "Pressed") fireHotkey(h);
-          }).catch(() => {}); // taken by another app or not a valid key: skip it
-        }
-        trainerSend(`sound ${sound ? 1 : 0}`).catch(() => {});
-        registered = want;
+        const hotkeys = (await activeHotkeys(gamesRef.current)) ?? [];
+        const keys = hotkeys.map((h): [string, string] => [h.storageKey, stored(h.storageKey, h.initial)]);
+        const want = JSON.stringify(keys); // picks up changes made in Settings too
+        active = hotkeys;
+        if (want === watching) return;
+        await invoke("set_hotkeys", { keys });
+        // The app plays the beep for every game; keep the Graveyard Keeper plugin's own beep off so it doesn't double.
+        if (hotkeys === GK_HOTKEYS) trainerSend("sound 0").catch(() => {});
+        watching = want;
       } finally {
         busy = false;
       }
@@ -220,12 +232,13 @@ export function useGameHotkeys() {
     const id = setInterval(tick, 1500);
     return () => {
       clearInterval(id);
-      unregisterAll().catch(() => {});
+      stop.then((f) => f());
+      invoke("set_hotkeys", { keys: [] }).catch(() => {});
     };
   }, []);
 }
 
-function stored<T>(key: string, fallback: T): T {
+export function stored<T>(key: string, fallback: T): T {
   try {
     const v = localStorage.getItem(key);
     return v === null ? fallback : JSON.parse(v);
@@ -234,15 +247,14 @@ function stored<T>(key: string, fallback: T): T {
   }
 }
 
-function CheatToggle({ title, cheat, value, detail, disabled, onChange }: { title: string; cheat: string; value?: boolean; detail?: string; disabled: boolean; onChange: (on: boolean) => void }) {
-  const hotkey = HOTKEYS.find((h) => h.cheat === cheat)!;
+export function CheatToggle({ title, hotkey, value, detail, disabled, onChange }: { title: string; hotkey: Pick<Hotkey, "storageKey" | "initial">; value?: boolean; detail?: string; disabled: boolean; onChange: (on: boolean) => void }) {
   return (
     <div className="row">
       <div className="row-title" style={disabled ? { opacity: 0.5 } : undefined}>
         {title}
         {detail && <div className="setting-desc mono">{detail}</div>}
       </div>
-      {/* shortcut: while the game runs, the current key is held globally, so pressing that same key again while rebinding isn't seen */}
+      {/* shortcut: pressing the current key while rebinding also toggles the cheat (the key watcher sees it too) */}
       <HotkeyButton className="key" storageKey={hotkey.storageKey} initial={hotkey.initial} label={title} />
       <div style={disabled ? { opacity: 0.5, pointerEvents: "none" } : undefined}>
         <Toggle on={!!value} onChange={onChange} label={title} />

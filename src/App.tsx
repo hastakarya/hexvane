@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
 import { artUrl, coverFor, detectGames, isBlocked, launchGame, type Game, type Store } from "./games";
+import { RyseTrainer, isRyse } from "./Ryse";
 import { GraveyardKeeperTrainer, hasTrainer, useGameHotkeys } from "./Trainer";
 import { TOAST_POSITIONS, TOAST_SETTING } from "./Toast";
 import { Art, Avatar, CoffeeIcon, Dropdown, ErrorBoundary, KeyRow, Logo, SelectRow, TitleBar, ToggleRow, useStored } from "./ui";
@@ -29,7 +30,7 @@ export default function App() {
     detectGames().then(setGames).catch((e) => setError(String(e)));
   };
   useEffect(scan, []);
-  useGameHotkeys();
+  useGameHotkeys(games);
 
   const active = view.name === "game" ? "library" : view.name;
 
@@ -158,7 +159,7 @@ function GameDetail({ game, onBack }: { game: Game; onBack: () => void }) {
         </div>
       ) : (
         // Only games with a trainer can be opened from the library (see hasTrainer)
-        <GraveyardKeeperTrainer game={game} />
+        isRyse(game) ? <RyseTrainer game={game} /> : <GraveyardKeeperTrainer game={game} />
       )}
     </div>
   );

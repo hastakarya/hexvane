@@ -26,6 +26,26 @@ export function showToast(text: string, on: boolean) {
   emitTo<ToastMessage>("toast", "toast", { text, on }).catch(() => {});
 }
 
+let audio: AudioContext | undefined;
+// WebView2 keeps audio muted until the page gets a click, and a global hotkey doesn't count: unlock on the first click.
+window.addEventListener("pointerdown", () => { audio ??= new AudioContext(); audio.resume().catch(() => {}); }, { once: true });
+
+/** A short beep, high for on and low for off, unless Settings > Hotkeys > Hotkey sound is off. Same for every game. */
+export function playBeep(on: boolean) {
+  try {
+    if (JSON.parse(localStorage.getItem("toggle:Hotkey sound") ?? "true") === false) return;
+    audio ??= new AudioContext();
+    audio.resume().catch(() => {});
+    const osc = audio.createOscillator(), gain = audio.createGain(), t = audio.currentTime;
+    osc.frequency.value = on ? 880 : 520;
+    gain.gain.setValueAtTime(0.25, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.09); // fade out so it doesn't click
+    osc.connect(gain).connect(audio.destination);
+    osc.start(t);
+    osc.stop(t + 0.09);
+  } catch { /* no audio device: stay silent */ }
+}
+
 /** What the toast window renders: nothing, or one message for two seconds. */
 export function ToastWindow() {
   const [message, setMessage] = useState<ToastMessage | null>(null);

@@ -6,11 +6,16 @@ Each supported game has its own trainer in this folder. A trainer is the part th
 
 | Game | Engine | How it works | Cheats | Docs |
 | --- | --- | --- | --- | --- |
-| Graveyard Keeper | Unity (Mono) | BepInEx 5 plugin | Unlimited health, unlimited stamina, add money, give items, in-game hotkeys | [GraveyardKeeper](GraveyardKeeper/README.md) |
+| Graveyard Keeper | Unity (Mono) | BepInEx 5 plugin | Unlimited health, unlimited stamina, add money, give items | [GraveyardKeeper](GraveyardKeeper/README.md) |
+| Ryse: Son of Rome | CryEngine 3 (native) | Memory patches from the app, campaign only | Undead, add valor | [Ryse](Ryse/README.md) |
 
 Every other detected game shows "Coming soon" in the library and can't be opened.
 
-## How it works
+## Hotkeys
+
+While a supported game runs, Hexvane watches its cheat hotkeys by polling the keyboard (`src-tauri/src/hotkeys.rs`), so they work whichever window has focus, including games that swallow normal Windows hotkeys. Each press shows the toast and plays a short beep from the app.
+
+## How it works (plugin games)
 
 ```
 Hexvane app  ──  one text line over 127.0.0.1:47821  ──>  plugin inside the game  ──>  game objects
@@ -26,7 +31,7 @@ Hexvane never edits save files. Changes are made in the running game and reach t
 
 ## Adding a game
 
-1. Check the engine. Unity Mono games (an `Assembly-CSharp.dll` in `<game>_Data/Managed`) can use the same plugin approach. Unity IL2CPP and other engines need a different trainer.
+1. Check the engine. Unity Mono games (an `Assembly-CSharp.dll` in `<game>_Data/Managed`) can use the plugin approach. Other engines can use the memory engine in `src-tauri/src/native.rs`, like Ryse.
 2. Make a folder here with the plugin project. Copy `GraveyardKeeper/` as a start, keep the same line protocol, and use a free port or the same one.
 3. Add a page for the game in `src/` and include the game in `hasTrainer` in `src/Trainer.tsx`. The library then shows it as "Cheats ready".
 4. Write a `README.md` for the game (cheats, commands, build and install) and add it to the table above.
