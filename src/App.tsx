@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { getVersion } from "@tauri-apps/api/app";
 import { artUrl, coverFor, demoCheats, detectGames, isBlocked, type Game, type Store } from "./games";
-import { Art, KeyRow, Logo, SelectRow, SliderRow, ToggleRow } from "./ui";
+import { Art, Avatar, CoffeeIcon, Dropdown, ErrorBoundary, KeyRow, Logo, SelectRow, SliderRow, TitleBar, Toggle, ToggleRow, useStored } from "./ui";
 import "./styles.css";
 
 type View = { name: "library" | "settings" | "account" } | { name: "game"; game: Game };
@@ -15,6 +16,7 @@ export default function App() {
   const [view, setView] = useState<View>({ name: "library" });
   const [games, setGames] = useState<Game[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [avatar, setAvatar] = useStored<string | null>("avatar", null);
 
   const scan = () => {
     setGames(null);
@@ -26,6 +28,8 @@ export default function App() {
   const active = view.name === "game" ? "library" : view.name;
 
   return (
+    <>
+    <TitleBar />
     <div className="app">
       <aside className="sidebar">
         <div className="brand"><Logo /> Hexvane</div>
@@ -34,21 +38,25 @@ export default function App() {
             <span className="icon">{n.icon}</span> {n.label}
           </button>
         ))}
-        <div className="profile">
-          <div className="avatar" />
+        <button className="profile" onClick={() => setView({ name: "account" })}>
+          <Avatar src={avatar} />
           <div>
             <div style={{ fontWeight: 600, fontSize: 13 }}>Guest</div>
             <div className="supporter">Free · Supporter ♥</div>
           </div>
-        </div>
+        </button>
       </aside>
       <main className="main">
-        {view.name === "library" && <Library games={games} error={error} onRescan={scan} onOpen={(game) => setView({ name: "game", game })} />}
-        {view.name === "game" && <GameDetail game={view.game} onBack={() => setView({ name: "library" })} />}
-        {view.name === "settings" && <Settings />}
-        {view.name === "account" && <Account />}
+        {/* keyed by screen so switching screens clears a previous crash */}
+        <ErrorBoundary key={view.name}>
+          {view.name === "library" && <Library games={games} error={error} onRescan={scan} onOpen={(game) => setView({ name: "game", game })} />}
+          {view.name === "game" && <GameDetail game={view.game} onBack={() => setView({ name: "library" })} />}
+          {view.name === "settings" && <Settings />}
+          {view.name === "account" && <Account avatar={avatar} onAvatar={setAvatar} />}
+        </ErrorBoundary>
       </main>
     </div>
+    </>
   );
 }
 
@@ -162,7 +170,7 @@ function GameDetail({ game, onBack }: { game: Game; onBack: () => void }) {
   );
 }
 
-const TABS = ["General", "Hotkeys", "Overlay", "Updates", "About"] as const;
+const TABS = ["General", "Hotkeys", "Overlay", "About"] as const;
 
 function Settings() {
   const [tab, setTab] = useState<(typeof TABS)[number]>("General");
@@ -184,44 +192,118 @@ function Settings() {
           <KeyRow title="Disable all cheats" desc="Panic key: turns every active cheat off." keys="Ctrl + F12" />
           <ToggleRow title="Hotkey sound" desc="Play a short sound when a hotkey fires." />
         </>}
-        {tab === "Overlay" && <>
-          <ToggleRow title="Enable in-game overlay" desc="Works with DirectX 11/12 and Vulkan games." />
-          <SelectRow title="Position" desc="Where the panel opens." options={["Top left", "Top right", "Bottom left", "Bottom right"]} />
-          <ToggleRow title="Show FPS counter" desc="Small FPS readout in the corner." initial={false} />
-        </>}
-        {tab === "Updates" && <>
-          <SelectRow title="Update channel" desc="Beta gets new features first." options={["Stable", "Beta"]} />
-          <ToggleRow title="Download app updates automatically" desc="You are asked before anything installs." />
-        </>}
-        {tab === "About" && <>
-          <p className="muted" style={{ margin: 0 }}>Hexvane works only with single-player games and offline modes. It never attaches to online games or games with anti-cheat.</p>
-          <div className="row"><div className="row-title">Version</div><span className="mono muted">v0.1.0</span></div>
-          <ToggleRow title="Send crash reports" desc="Anonymous. No game or personal data." initial={false} />
-        </>}
+        {tab === "Overlay" && <OverlaySettings />}
+        {tab === "About" && <About />}
       </div>
     </div>
   );
 }
 
-function Account() {
+const POSITIONS = ["Top left", "Top right", "Bottom left", "Bottom right"];
+
+function OverlaySettings() {
+  const [enabled, setEnabled] = useStored("overlay:enabled", true);
+  const [position, setPosition] = useStored("overlay:position", POSITIONS[0]);
+  const [vertical, horizontal] = position.toLowerCase().split(" ");
+  return <>
+    <p className="muted" style={{ margin: 0 }}>The panel shown on top of your game.</p>
+    <div className="row">
+      <div className="row-title">Enable in-game overlay<div className="setting-desc">Works with DirectX 11/12 and Vulkan games.</div></div>
+      <Toggle on={enabled} onChange={setEnabled} label="Enable in-game overlay" />
+    </div>
+    <div className="row">
+      <div className="row-title">Position<div className="setting-desc">Where the panel opens.</div></div>
+      <Dropdown value={position} options={POSITIONS} onChange={setPosition} label="Position" />
+    </div>
+    <div className="section-label">PREVIEW</div>
+    <div className={`overlay-preview ${enabled ? "" : "off"}`} aria-label={`Preview: overlay ${enabled ? `in the ${position.toLowerCase()} corner` : "turned off"}`}>
+      <span className="overlay-preview-game">[ your game ]</span>
+      {enabled ? (
+        <div className="mini-overlay" style={{ [vertical]: 16, [horizontal]: 16 }}>
+          <div className="mini-overlay-head"><Logo size={14} /><b>Star Voyager</b><span>● Attached</span></div>
+          <div className="mini-row">Unlimited Health<span className="mono">F1</span><i className="on" /></div>
+          <div className="mini-row">No Reload<span className="mono">F3</span><i /></div>
+          <div className="mini-row">Game Speed<span className="mono" style={{ color: "var(--lime)" }}>1.5x</span></div>
+          <div className="mini-hint">Ctrl + Tab to hide</div>
+        </div>
+      ) : <span className="overlay-preview-off">Overlay is off</span>}
+    </div>
+    <div className="setting-desc">This panel appears on top of your game. Toggle cheats without alt-tabbing, and hide it with your overlay hotkey.</div>
+  </>;
+}
+
+function About() {
+  const [version, setVersion] = useState("");
+  const [status, setStatus] = useState<string | null>(null);
+  useEffect(() => { getVersion().then(setVersion).catch(() => setVersion("?")); }, []);
+  return <>
+    <p className="muted" style={{ margin: 0 }}>Hexvane works only with single-player games and offline modes. It never attaches to online games or games with anti-cheat.</p>
+    <div className="section-label">UPDATES</div>
+    <div className="row">
+      <div className="row-title">
+        Hexvane <span className="mono muted" style={{ fontSize: 13, marginLeft: 6 }}>v{version}</span>
+        {/* shortcut: no update server yet, so the button only reports that; wire to tauri-plugin-updater before release */}
+        <div className="setting-desc">{status ?? "Update checking isn't connected yet."}</div>
+      </div>
+      <button className="btn btn-secondary" onClick={() => setStatus("No update server yet. You're on the build you installed.")}>Check for updates</button>
+    </div>
+    <SelectRow title="Update channel" desc="Beta gets new features first." options={["Stable", "Beta"]} />
+    <ToggleRow title="Download app updates automatically" desc="You are asked before anything installs." />
+    <div className="section-label">PRIVACY</div>
+    <ToggleRow title="Send crash reports" desc="Anonymous. No game or personal data." initial={false} />
+    <div className="section-label">HELP</div>
+    <ButtonRow title="Help & community" desc="Guides, FAQ and Discord." label="Open ↗" />
+    <ButtonRow title="Licenses" desc="Open-source notices for fonts and libraries." label="View" />
+  </>;
+}
+
+// shortcut: Help and Licenses buttons have no target yet; point them at the website / a licenses screen when those exist
+function ButtonRow({ title, desc, label }: { title: string; desc: string; label: string }) {
+  return (
+    <div className="row">
+      <div className="row-title">{title}<div className="setting-desc">{desc}</div></div>
+      <button className="btn btn-secondary">{label}</button>
+    </div>
+  );
+}
+
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+
+function Account({ avatar, onAvatar }: { avatar: string | null; onAvatar: (src: string | null) => void }) {
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const pick = (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return setAvatarError("Choose an image file (PNG, JPG, GIF or WebP).");
+    if (file.size > MAX_AVATAR_BYTES) return setAvatarError("That image is over 2 MB. Choose a smaller one.");
+    setAvatarError(null);
+    const reader = new FileReader();
+    reader.onload = () => onAvatar(String(reader.result));
+    reader.readAsDataURL(file);
+  };
   return (
     <div className="page">
       <h1>Account</h1>
       <div className="row" style={{ padding: 20, gap: 16 }}>
-        <div className="avatar" style={{ width: 64, height: 64 }} />
+        <Avatar src={avatar} size={64} />
         <div style={{ flex: 1 }}>
           <h2 style={{ fontSize: 20 }}>Guest</h2>
           <div className="muted" style={{ fontSize: 13 }}>Sign in to sync favorites and hotkeys across PCs.</div>
+          {avatarError && <div style={{ color: "var(--danger)", fontSize: 13, marginTop: 4 }}>{avatarError}</div>}
         </div>
+        <label className="btn btn-secondary">
+          Change picture
+          <input type="file" accept="image/*" hidden onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
+        </label>
+        {avatar && <button className="btn btn-secondary" onClick={() => onAvatar(null)}>Use logo</button>}
         <button className="btn btn-primary">Sign in</button>
       </div>
       <div className="donate">
-        <div style={{ fontSize: 40, color: "var(--warning)" }}>☕</div>
+        <CoffeeIcon size={44} color="var(--warning)" />
         <div style={{ flex: 1 }}>
           <h2 style={{ fontSize: 18 }}>Hexvane is free, forever</h2>
           <div style={{ color: "#bfc8b9", fontSize: 14 }}>No ads, no paywall. If it saved you a few hours of grinding, a coffee keeps new games and updates coming.</div>
         </div>
-        <button className="btn btn-coffee">☕ Buy me a coffee</button>
+        <button className="btn btn-coffee" style={{ display: "flex", alignItems: "center", gap: 8 }}><CoffeeIcon size={18} color="var(--on-lime)" /> Buy me a coffee</button>
         <button className="btn btn-secondary">Donate ♥</button>
       </div>
     </div>

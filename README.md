@@ -17,9 +17,11 @@ A free desktop trainer app for **single-player PC games**. Hexvane finds the gam
 | GOG artwork | Not started (gradient placeholder) |
 | Library: search, store filter | Working |
 | Game page: cheat toggles, sliders, hotkey chips | UI only |
+| Rebind hotkeys (click a key, press a new combination), saved locally | Working |
 | Block online / anti-cheat games | Hard-coded name list |
-| Settings: general, hotkeys, overlay, updates, about | UI only |
-| Account page with donation card | UI only |
+| Settings: general, hotkeys, overlay (with live preview), about (with updates) | UI only, choices saved locally where noted |
+| Account page: profile picture (Hex H logo by default, replaceable), donation card | Picture works, rest UI only |
+| Custom dark title bar with own minimise / maximise / close | Working |
 | Cheat engine (memory read/write, hotkeys) | Not started |
 | In-game overlay, onboarding, sign-in | Not started |
 
