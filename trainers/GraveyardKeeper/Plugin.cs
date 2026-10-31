@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using BepInEx;
+using UnityEngine;
 
 namespace Hexvane.Bridge
 {
@@ -29,11 +30,17 @@ namespace Hexvane.Bridge
         readonly Queue<Request> _pending = new Queue<Request>();
         TcpListener _listener;
         bool _lockHealth, _lockStamina;
+        bool _sound = true;
+        AudioSource _audio;
+        AudioClip _beepOn, _beepOff;
 
         void Awake()
         {
             // Unity stops calling Update when the window loses focus, which is exactly when the player clicks in Hexvane.
             UnityEngine.Application.runInBackground = true;
+            _audio = gameObject.AddComponent<AudioSource>();
+            _beepOn = Beep(880f);
+            _beepOff = Beep(520f);
             _listener = new TcpListener(IPAddress.Loopback, Port);
             _listener.Start();
             new Thread(Listen) { IsBackground = true, Name = "Hexvane Bridge" }.Start();
@@ -95,6 +102,29 @@ namespace Hexvane.Bridge
             if (_lockStamina && player.energy < MainGame.me.save.max_energy) player.energy = MainGame.me.save.max_energy;
         }
 
+        void Toggle(ref bool cheat)
+        {
+            cheat = !cheat;
+            PlayBeep(cheat);
+        }
+
+        void PlayBeep(bool on)
+        {
+            if (_sound) _audio.PlayOneShot(on ? _beepOn : _beepOff, 0.4f);
+        }
+
+        /// <summary>A short sine tone with a fade-out, made in code so the plugin ships no sound files.</summary>
+        static AudioClip Beep(float hz)
+        {
+            const int rate = 44100;
+            var samples = new float[rate * 8 / 100]; // 80 ms
+            for (var i = 0; i < samples.Length; i++)
+                samples[i] = Mathf.Sin(2 * Mathf.PI * hz * i / rate) * (1f - (float)i / samples.Length);
+            var clip = AudioClip.Create("hexvane-beep", samples.Length, 1, rate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
         static bool InGame() => MainGame.me != null && MainGame.game_started && MainGame.me.player != null && MainGame.me.save != null;
 
         string Handle(string[] a)
@@ -116,6 +146,19 @@ namespace Hexvane.Bridge
                     if (a[1] == "health") _lockHealth = on;
                     else if (a[1] == "stamina") _lockStamina = on;
                     else return "err unknown cheat " + a[1];
+                    return "ok";
+                // Hotkeys are registered system-wide by the app (they must work while Hexvane has focus too); it sends these.
+                case "toggle": // toggle health|stamina, with a beep
+                    if (a[1] == "health") Toggle(ref _lockHealth);
+                    else if (a[1] == "stamina") Toggle(ref _lockStamina);
+                    else return "err unknown cheat " + a[1];
+                    return "ok";
+                case "off": // panic key: every cheat off
+                    if (_lockHealth || _lockStamina) PlayBeep(false);
+                    _lockHealth = _lockStamina = false;
+                    return "ok";
+                case "sound": // sound 0|1: beep when a hotkey toggles a cheat
+                    _sound = a.Length > 1 && a[1] == "1";
                     return "ok";
             }
 

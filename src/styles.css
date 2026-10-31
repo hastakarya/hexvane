@@ -112,7 +112,11 @@ h1 { font-size: 28px; }
 .btn-primary:active { background: var(--lime-pressed); box-shadow: none; }
 .btn-secondary { background: var(--bg-surface); border-color: var(--border); }
 .btn-secondary:hover { background: var(--border); }
-.btn-play { background: linear-gradient(90deg, var(--aqua), #00a88f); color: var(--on-lime); font-family: var(--font-display); font-weight: 700; font-size: 16px; letter-spacing: 1px; padding: 16px 40px; border-radius: 12px; }
+.btn-play { background: linear-gradient(90deg, var(--aqua), #00a88f); color: var(--on-lime); font-family: var(--font-display); font-weight: 700; font-size: 16px; letter-spacing: 1px; padding: 16px 40px; border-radius: 12px; transition: filter .15s, box-shadow .15s, transform .15s; }
+.btn-play:hover { filter: brightness(1.12); box-shadow: 0 0 0 1px rgba(0, 209, 178, .5), 0 8px 28px rgba(0, 209, 178, .45); transform: translateY(-1px); }
+.btn-play:active { filter: brightness(.92); box-shadow: 0 0 0 1px rgba(0, 209, 178, .4); transform: translateY(0); transition-duration: .05s; }
+.btn-play:focus-visible { outline: 2px solid var(--aqua); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .btn-play, .btn-play:hover { transform: none; } }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .btn-sm { padding: 7px 12px; font-size: 13px; font-family: var(--font-mono); }
 .row .btn-secondary { background: var(--bg-raised); }

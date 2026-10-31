@@ -1,6 +1,7 @@
+import { register, unregisterAll } from "@tauri-apps/plugin-global-shortcut";
 import { useEffect, useMemo, useState } from "react";
 import { trainerSend, type Game } from "./games";
-import { Toggle } from "./ui";
+import { HotkeyButton, Toggle } from "./ui";
 
 interface State {
   inGame: boolean;
@@ -60,8 +61,8 @@ export function GraveyardKeeperTrainer() {
     <div className="detail-body">
       <div className="cheats">
         <div className="section-label">PLAYER</div>
-        <CheatToggle title="Unlimited Health" value={state?.health} detail={ready ? `${Math.round(state!.hp!)} / ${state!.maxHp}` : undefined} disabled={!state} onChange={(on) => run(`set health ${on ? 1 : 0}`)} />
-        <CheatToggle title="Unlimited Stamina" value={state?.stamina} detail={ready ? `${Math.round(state!.energy!)} / ${state!.maxEnergy}` : undefined} disabled={!state} onChange={(on) => run(`set stamina ${on ? 1 : 0}`)} />
+        <CheatToggle title="Unlimited Health" cheat="health" value={state?.health} detail={ready ? `${Math.round(state!.hp!)} / ${state!.maxHp}` : undefined} disabled={!state} onChange={(on) => run(`set health ${on ? 1 : 0}`)} />
+        <CheatToggle title="Unlimited Stamina" cheat="stamina" value={state?.stamina} detail={ready ? `${Math.round(state!.energy!)} / ${state!.maxEnergy}` : undefined} disabled={!state} onChange={(on) => run(`set stamina ${on ? 1 : 0}`)} />
 
         <div className="section-label">MONEY</div>
         <div className="row">
@@ -110,15 +111,77 @@ export function GraveyardKeeperTrainer() {
   );
 }
 
-function CheatToggle({ title, value, detail, disabled, onChange }: { title: string; value?: boolean; detail?: string; disabled: boolean; onChange: (on: boolean) => void }) {
+// Hotkeys live in the app (localStorage). useGameHotkeys registers them system-wide, so they work whichever window has focus.
+// Not F1: BepInEx's Configuration Manager, common in modded games, opens on F1.
+const HOTKEYS = [
+  { cheat: "health", storageKey: "hotkey:gyk:health", initial: "F7", command: "toggle health" },
+  { cheat: "stamina", storageKey: "hotkey:gyk:stamina", initial: "F8", command: "toggle stamina" },
+  { cheat: "panic", storageKey: "hotkey:Disable all cheats", initial: "Ctrl + F12", command: "off" }, // set in Settings > Hotkeys
+];
+
+/**
+ * While Graveyard Keeper is running, holds the cheat hotkeys as global shortcuts and forwards presses to the plugin.
+ * Released when the game closes, so F7 and friends go back to other apps. Mounted once at the app root.
+ */
+export function useGameHotkeys() {
+  useEffect(() => {
+    let registered = ""; // the key set currently held, "" when none
+    let busy = false;
+    const tick = async () => {
+      if (busy) return;
+      busy = true;
+      try {
+        const up = await trainerSend("ping").then(() => true, () => false);
+        const keys = HOTKEYS.map((h) => stored(h.storageKey, h.initial));
+        const sound = stored("toggle:Hotkey sound", true);
+        const want = up ? `${keys.join("|")}|${sound}` : ""; // picks up changes made in Settings too
+        if (want === registered) return;
+        await unregisterAll();
+        registered = "";
+        if (!up) return;
+        for (const [i, h] of HOTKEYS.entries()) {
+          // "Ctrl + Shift + F7" (app label) -> "Ctrl+Shift+F7" (accelerator)
+          await register(keys[i].replace(/\s/g, ""), (e) => {
+            if (e.state === "Pressed") trainerSend(h.command).catch(() => {});
+          }).catch(() => {}); // taken by another app or not a valid key: skip it
+        }
+        trainerSend(`sound ${sound ? 1 : 0}`).catch(() => {});
+        registered = want;
+      } finally {
+        busy = false;
+      }
+    };
+    tick();
+    const id = setInterval(tick, 1500);
+    return () => {
+      clearInterval(id);
+      unregisterAll().catch(() => {});
+    };
+  }, []);
+}
+
+function stored<T>(key: string, fallback: T): T {
+  try {
+    const v = localStorage.getItem(key);
+    return v === null ? fallback : JSON.parse(v);
+  } catch {
+    return fallback;
+  }
+}
+
+function CheatToggle({ title, cheat, value, detail, disabled, onChange }: { title: string; cheat: string; value?: boolean; detail?: string; disabled: boolean; onChange: (on: boolean) => void }) {
+  const hotkey = HOTKEYS.find((h) => h.cheat === cheat)!;
   return (
-    <div className="row" style={disabled ? { opacity: 0.5, pointerEvents: "none" } : undefined}>
-      <div className="row-title">
+    <div className="row">
+      <div className="row-title" style={disabled ? { opacity: 0.5 } : undefined}>
         {title}
         {detail && <div className="setting-desc mono">{detail}</div>}
       </div>
-      {/* shortcut: no in-game hotkeys yet; needs a global shortcut (or the plugin reading keys) bound to the stored hotkey */}
-      <Toggle on={!!value} onChange={onChange} label={title} />
+      {/* shortcut: while the game runs, the current key is held globally, so pressing that same key again while rebinding isn't seen */}
+      <HotkeyButton className="key" storageKey={hotkey.storageKey} initial={hotkey.initial} label={title} />
+      <div style={disabled ? { opacity: 0.5, pointerEvents: "none" } : undefined}>
+        <Toggle on={!!value} onChange={onChange} label={title} />
+      </div>
     </div>
   );
 }

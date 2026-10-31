@@ -19,6 +19,7 @@ A free desktop trainer app for **single-player PC games**. Hexvane finds the gam
 | Play button: starts the game through Steam or Epic, or its exe for GOG | Working (Steam tested; Epic and GOG untested) |
 | Library cards: "Cheats ready", "Coming soon" (cannot be opened) or "Online — blocked" | Working |
 | Rebind hotkeys (click a key, press a new combination), saved locally | Working |
+| Settings toggles saved across restarts | Working |
 | Block online / anti-cheat games | Hard-coded name list |
 | Settings: general, hotkeys, overlay (with live preview), about (with updates) | UI only, choices saved locally where noted |
 | Account page: profile picture (Hex H logo by default, replaceable), donation card | Picture works, rest UI only |
@@ -27,7 +28,7 @@ A free desktop trainer app for **single-player PC games**. Hexvane finds the gam
 | Sign in / sign up forms with validation, or continue as guest | Forms only: no account server yet |
 | Graveyard Keeper cheats: unlimited health, unlimited stamina, add money, give items | Working ([details](trainers/GraveyardKeeper/README.md)) |
 | Cheats for other games | Not started (cards show "Coming soon") |
-| In-game hotkeys for cheats | Not started |
+| In-game hotkeys for cheats, panic key and hotkey sound | Working (Graveyard Keeper) |
 | In-game overlay | Not started (settings preview only) |
 
 ## Tech stack

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
 import { artUrl, coverFor, detectGames, isBlocked, launchGame, type Game, type Store } from "./games";
-import { GraveyardKeeperTrainer, hasTrainer } from "./Trainer";
+import { GraveyardKeeperTrainer, hasTrainer, useGameHotkeys } from "./Trainer";
 import { Art, Avatar, CoffeeIcon, Dropdown, ErrorBoundary, KeyRow, Logo, SelectRow, TitleBar, Toggle, ToggleRow, useStored } from "./ui";
 import { Auth, Onboarding } from "./Welcome";
 import "./styles.css";
@@ -28,6 +28,7 @@ export default function App() {
     detectGames().then(setGames).catch((e) => setError(String(e)));
   };
   useEffect(scan, []);
+  useGameHotkeys();
 
   const active = view.name === "game" ? "library" : view.name;
 

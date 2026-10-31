@@ -15,6 +15,18 @@ Body parts, souls, graves and workers can't be given, because giving them can br
 
 The locks keep working while the game is in the background (the plugin sets `Application.runInBackground`).
 
+## Hotkeys
+
+| Key (default) | Action |
+| --- | --- |
+| F7 | Toggle Unlimited Health |
+| F8 | Toggle Unlimited Stamina |
+| Ctrl + F12 | Turn every cheat off (panic key, set in Settings > Hotkeys) |
+
+While the game is running, Hexvane registers these keys system-wide, so they work whether the game, Hexvane or another window has focus. When the game closes, Hexvane releases them. Change them in the app: click a key chip and press a new combination. F1 is avoided on purpose: BepInEx Configuration Manager opens on F1.
+
+A short beep plays in game when a hotkey turns a cheat on (high) or off (low). Turn it off with Settings > Hotkeys > Hotkey sound.
+
 ## Commands
 
 The plugin listens on `127.0.0.1:47821`. Send one line and read one line back. Errors start with `err `.
@@ -26,6 +38,9 @@ The plugin listens on `127.0.0.1:47821`. Send one line and read one line back. E
 | `set health 0\|1` | `ok` |
 | `set stamina 0\|1` | `ok` |
 | `money <amount>` | `ok`. The game counts in silver: `1` = 1 silver, `100` = 1 gold, `0.01` = 1 copper |
+| `toggle health\|stamina` | `ok`. Flips the cheat and beeps (sent by the hotkeys) |
+| `off` | `ok`. Turns every cheat off (panic key) |
+| `sound 0\|1` | `ok`. Beep when a hotkey toggles a cheat |
 | `give <item id> <count>` | `ok`, or `err inventory is full` |
 | `items` | JSON list of `[id, name, type]` for items that can be given |
 | `items all` | The same, without the filter |

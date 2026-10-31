@@ -6,7 +6,7 @@ Each supported game has its own trainer in this folder. A trainer is the part th
 
 | Game | Engine | How it works | Cheats | Docs |
 | --- | --- | --- | --- | --- |
-| Graveyard Keeper | Unity (Mono) | BepInEx 5 plugin | Unlimited health, unlimited stamina, add money, give items | [GraveyardKeeper](GraveyardKeeper/README.md) |
+| Graveyard Keeper | Unity (Mono) | BepInEx 5 plugin | Unlimited health, unlimited stamina, add money, give items, in-game hotkeys | [GraveyardKeeper](GraveyardKeeper/README.md) |
 
 Every other detected game shows "Coming soon" in the library and can't be opened.
 

@@ -99,16 +99,15 @@ export function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boo
   return <button className={`toggle ${on ? "on" : ""}`} role="switch" aria-checked={on} aria-label={label} onClick={() => onChange(!on)} />;
 }
 
-export function ToggleRow({ title, desc, initial = true, keyLabel }: { title: string; desc?: string; initial?: boolean; keyLabel?: string }) {
-  const [on, setOn] = useState(initial);
+/** A settings switch, saved across restarts under `storageKey` (default "toggle:<title>"). */
+export function ToggleRow({ title, desc, initial = true, storageKey }: { title: string; desc?: string; initial?: boolean; storageKey?: string }) {
+  const [on, setOn] = useStored(storageKey ?? `toggle:${title}`, initial);
   return (
     <div className="row">
       <div className="row-title">
         {title}
         {desc && <div className="setting-desc">{desc}</div>}
       </div>
-      {/* shortcut: cheat hotkeys are stored per cheat name, shared by all games; key them by game once real cheats exist */}
-      {keyLabel && <HotkeyButton className="key" storageKey={`hotkey:cheat:${title}`} initial={keyLabel} label={title} />}
       <Toggle on={on} onChange={setOn} label={title} />
     </div>
   );
@@ -168,7 +167,7 @@ export function comboFromEvent(e: Pick<KeyboardEvent, "key" | "ctrlKey" | "shift
 }
 
 /** Click, then press a key combination to rebind. Escape cancels. */
-export function HotkeyButton({ storageKey, initial, className, label }: { storageKey: string; initial: string; className: string; label: string }) {
+export function HotkeyButton({ storageKey, initial, className, label, onChange }: { storageKey: string; initial: string; className: string; label: string; onChange?: (keys: string) => void }) {
   const [keys, setKeys] = useStored(storageKey, initial);
   const [listening, setListening] = useState(false);
   useEffect(() => {
@@ -181,6 +180,7 @@ export function HotkeyButton({ storageKey, initial, className, label }: { storag
       if (combo) {
         setKeys(combo);
         setListening(false);
+        onChange?.(combo);
       }
     };
     window.addEventListener("keydown", onKey, true);
