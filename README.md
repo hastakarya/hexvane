@@ -21,7 +21,7 @@ A free desktop trainer app for **single-player PC games**. Hexvane finds the gam
 | Rebind hotkeys (click a key, press a new combination), saved locally | Working |
 | Settings toggles saved across restarts | Working |
 | Block online / anti-cheat games | Hard-coded name list |
-| Settings: general, hotkeys, overlay (with live preview), about (with updates) | UI only, choices saved locally where noted |
+| Settings: general, hotkeys (with toast preview), about (with updates) | Hotkey settings work; the rest is UI only |
 | Account page: profile picture (Hex H logo by default, replaceable), donation card | Picture works, rest UI only |
 | Custom dark title bar with own minimise / maximise / close | Working |
 | Onboarding (3 steps, first launch only) | Working |
@@ -29,7 +29,8 @@ A free desktop trainer app for **single-player PC games**. Hexvane finds the gam
 | Graveyard Keeper cheats: unlimited health, unlimited stamina, add money, give items | Working ([details](trainers/GraveyardKeeper/README.md)) |
 | Cheats for other games | Not started (cards show "Coming soon") |
 | In-game hotkeys for cheats, panic key and hotkey sound | Working (Graveyard Keeper) |
-| In-game overlay | Not started (settings preview only) |
+| Hotkey toast: "Unlimited Health ON" on screen, in a chosen corner | Working in windowed and borderless games (exclusive fullscreen hides it) |
+| Install, update and remove the game plugin from the app | Working |
 
 ## Tech stack
 
@@ -86,6 +87,9 @@ Cheats run inside each game as a small plugin that the app talks to over `127.0.
 
 ## Build an installer
 
+The app ships the Graveyard Keeper plugin inside it, so build the plugin first (see [trainers/GraveyardKeeper/README.md](trainers/GraveyardKeeper/README.md#build)). `cargo` fails with a missing `Hexvane.Bridge.dll` otherwise.
+
+
 ```bash
 npm run tauri build
 ```
@@ -123,7 +127,6 @@ Detection only reads local files and registry keys. The one network use is the a
 Search the code for `shortcut:` to find them.
 
 - Non-game Steam apps (Aseprite, Wallpaper Engine…) are hidden by a hand-picked list of app ids.
-- The Graveyard Keeper plugin is installed by hand; the app doesn't install it yet.
 - The online / anti-cheat blocklist is a short hard-coded list of names.
 
 ## Design

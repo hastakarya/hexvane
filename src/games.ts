@@ -17,6 +17,11 @@ export const detectGames = () => invoke<Game[]>("detect_games");
 
 export const launchGame = (id: string) => invoke<void>("launch_game", { id });
 
+export interface PluginStatus { bepinex: boolean; installed: boolean; upToDate: boolean }
+export const pluginStatus = (gameDir: string) => invoke<PluginStatus>("plugin_status", { gameDir });
+export const installPlugin = (gameDir: string) => invoke<void>("install_plugin", { gameDir });
+export const uninstallPlugin = (gameDir: string) => invoke<void>("uninstall_plugin", { gameDir });
+
 /** One command to the in-game Hexvane Bridge plugin. Rejects with "not running" when the game isn't up. */
 export const trainerSend = (command: string) => invoke<string>("trainer_send", { command });
 

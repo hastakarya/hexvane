@@ -25,7 +25,7 @@ The locks keep working while the game is in the background (the plugin sets `App
 
 While the game is running, Hexvane registers these keys system-wide, so they work whether the game, Hexvane or another window has focus. When the game closes, Hexvane releases them. Change them in the app: click a key chip and press a new combination. F1 is avoided on purpose: BepInEx Configuration Manager opens on F1.
 
-A short beep plays in game when a hotkey turns a cheat on (high) or off (low). Turn it off with Settings > Hotkeys > Hotkey sound.
+A toast appears on screen (Settings > Hotkeys > Hotkey toast picks the corner, or Off), and a short beep plays in game when a hotkey turns a cheat on (high) or off (low). Turn it off with Settings > Hotkeys > Hotkey sound.
 
 ## Commands
 
@@ -73,8 +73,8 @@ If the game isn't in the default Steam folder, add `-p:GameDir="<game folder>"`.
 
 ## Install and uninstall
 
-With the game closed, copy `bin/Release/net472/Hexvane.Bridge.dll` into `<game folder>/BepInEx/plugins/Hexvane/`. The DLL is locked while the game runs.
+Open Graveyard Keeper in Hexvane and click **Install plugin** (or **Update plugin** after an app update). Hexvane copies its built-in `Hexvane.Bridge.dll` into `<game folder>/BepInEx/plugins/Hexvane/`. **Remove** deletes that folder. The game must be closed, because it keeps the DLL locked while running.
 
-To uninstall, delete `<game folder>/BepInEx/plugins/Hexvane/`.
+BepInEx 5 must already be installed in the game. If it isn't, the page links to the [BepInEx install guide](https://docs.bepinex.dev/articles/user_guide/installation/index.html).
 
-The app doesn't install the plugin yet; it's copied by hand.
+To install by hand instead, copy `bin/Release/net472/Hexvane.Bridge.dll` to the same folder.

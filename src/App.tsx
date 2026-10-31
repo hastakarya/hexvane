@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
 import { artUrl, coverFor, detectGames, isBlocked, launchGame, type Game, type Store } from "./games";
 import { GraveyardKeeperTrainer, hasTrainer, useGameHotkeys } from "./Trainer";
-import { Art, Avatar, CoffeeIcon, Dropdown, ErrorBoundary, KeyRow, Logo, SelectRow, TitleBar, Toggle, ToggleRow, useStored } from "./ui";
+import { TOAST_POSITIONS, TOAST_SETTING } from "./Toast";
+import { Art, Avatar, CoffeeIcon, Dropdown, ErrorBoundary, KeyRow, Logo, SelectRow, TitleBar, ToggleRow, useStored } from "./ui";
 import { Auth, Onboarding } from "./Welcome";
 import "./styles.css";
 
@@ -157,13 +158,13 @@ function GameDetail({ game, onBack }: { game: Game; onBack: () => void }) {
         </div>
       ) : (
         // Only games with a trainer can be opened from the library (see hasTrainer)
-        <GraveyardKeeperTrainer />
+        <GraveyardKeeperTrainer game={game} />
       )}
     </div>
   );
 }
 
-const TABS = ["General", "Hotkeys", "Overlay", "About"] as const;
+const TABS = ["General", "Hotkeys", "About"] as const;
 
 function Settings() {
   const [tab, setTab] = useState<(typeof TABS)[number]>("General");
@@ -181,47 +182,31 @@ function Settings() {
           <ToggleRow title="Notifications" desc="Tell me when a favorite game gets new cheats." />
         </>}
         {tab === "Hotkeys" && <>
-          <KeyRow title="Toggle overlay" desc="Show or hide the in-game overlay." keys="Ctrl + Tab" />
           <KeyRow title="Disable all cheats" desc="Panic key: turns every active cheat off." keys="Ctrl + F12" />
           <ToggleRow title="Hotkey sound" desc="Play a short sound when a hotkey fires." />
+          <ToastSettings />
         </>}
-        {tab === "Overlay" && <OverlaySettings />}
         {tab === "About" && <About />}
       </div>
     </div>
   );
 }
 
-const POSITIONS = ["Top left", "Top right", "Bottom left", "Bottom right"];
-
-function OverlaySettings() {
-  const [enabled, setEnabled] = useStored("overlay:enabled", true);
-  const [position, setPosition] = useStored("overlay:position", POSITIONS[0]);
+function ToastSettings() {
+  const [position, setPosition] = useStored<string>(TOAST_SETTING, TOAST_POSITIONS[1]);
   const [vertical, horizontal] = position.toLowerCase().split(" ");
   return <>
-    <p className="muted" style={{ margin: 0 }}>The panel shown on top of your game.</p>
     <div className="row">
-      <div className="row-title">Enable in-game overlay<div className="setting-desc">Works with DirectX 11/12 and Vulkan games.</div></div>
-      <Toggle on={enabled} onChange={setEnabled} label="Enable in-game overlay" />
+      <div className="row-title">Hotkey toast<div className="setting-desc">A short message on screen when a hotkey turns a cheat on or off.</div></div>
+      <Dropdown value={position} options={[...TOAST_POSITIONS, "Off"]} onChange={setPosition} label="Hotkey toast" />
     </div>
-    <div className="row">
-      <div className="row-title">Position<div className="setting-desc">Where the panel opens.</div></div>
-      <Dropdown value={position} options={POSITIONS} onChange={setPosition} label="Position" />
+    <div className={`toast-preview ${position === "Off" ? "off" : ""}`} aria-label={`Preview: toast ${position === "Off" ? "turned off" : `in the ${position.toLowerCase()} corner`}`}>
+      <span className="toast-preview-game">[ your game ]</span>
+      {position === "Off" ? <span className="toast-preview-off">Toast is off</span> : (
+        <div className="toast mini" style={{ [vertical]: 16, [horizontal]: 16 }}><i className="on" />Unlimited Health<b>ON</b></div>
+      )}
     </div>
-    <div className="section-label">PREVIEW</div>
-    <div className={`overlay-preview ${enabled ? "" : "off"}`} aria-label={`Preview: overlay ${enabled ? `in the ${position.toLowerCase()} corner` : "turned off"}`}>
-      <span className="overlay-preview-game">[ your game ]</span>
-      {enabled ? (
-        <div className="mini-overlay" style={{ [vertical]: 16, [horizontal]: 16 }}>
-          <div className="mini-overlay-head"><Logo size={14} /><b>Star Voyager</b><span>● Attached</span></div>
-          <div className="mini-row">Unlimited Health<span className="mono">F1</span><i className="on" /></div>
-          <div className="mini-row">No Reload<span className="mono">F3</span><i /></div>
-          <div className="mini-row">Game Speed<span className="mono" style={{ color: "var(--lime)" }}>1.5x</span></div>
-          <div className="mini-hint">Ctrl + Tab to hide</div>
-        </div>
-      ) : <span className="overlay-preview-off">Overlay is off</span>}
-    </div>
-    <div className="setting-desc">This panel appears on top of your game. Toggle cheats without alt-tabbing, and hide it with your overlay hotkey.</div>
+    <div className="setting-desc">Shows over games in windowed or borderless fullscreen mode. Games in exclusive fullscreen hide it.</div>
   </>;
 }
 

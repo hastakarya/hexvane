@@ -1,6 +1,8 @@
 import { register, unregisterAll } from "@tauri-apps/plugin-global-shortcut";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useMemo, useState } from "react";
-import { trainerSend, type Game } from "./games";
+import { installPlugin, pluginStatus, trainerSend, uninstallPlugin, type Game, type PluginStatus } from "./games";
+import { showToast } from "./Toast";
 import { HotkeyButton, Toggle } from "./ui";
 
 interface State {
@@ -24,7 +26,7 @@ function formatMoney(silver: number) {
   return parts.filter(([n], i) => n > 0 || i === 2).map(([n, u]) => `${n}${u}`).join(" ");
 }
 
-export function GraveyardKeeperTrainer() {
+export function GraveyardKeeperTrainer({ game }: { game: Game }) {
   const [state, setState] = useState<State | null>(null);
   const [offline, setOffline] = useState<"down" | "busy" | false>(false);
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
@@ -80,6 +82,7 @@ export function GraveyardKeeperTrainer() {
       </div>
 
       <div className="aside">
+        <PluginPanel gameDir={game.installDir} />
         <div className="panel">
           {offline === "busy" ? (
             <>
@@ -111,13 +114,75 @@ export function GraveyardKeeperTrainer() {
   );
 }
 
+const BEPINEX_GUIDE = "https://docs.bepinex.dev/articles/user_guide/installation/index.html";
+
+/** Installs, updates or removes the in-game plugin the cheats run through. */
+function PluginPanel({ gameDir }: { gameDir: string }) {
+  const [status, setStatus] = useState<PluginStatus | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [working, setWorking] = useState(false);
+  const check = () => pluginStatus(gameDir).then(setStatus).catch((e) => setError(String(e)));
+  useEffect(() => { check(); }, [gameDir]);
+
+  const act = async (action: (dir: string) => Promise<void>) => {
+    setWorking(true);
+    setError(null);
+    try { await action(gameDir); } catch (e) { setError(String(e)); }
+    await check();
+    setWorking(false);
+  };
+
+  if (!status) return null;
+  const errorLine = error && <div style={{ fontSize: 13, color: "var(--danger)" }} role="alert">{error}</div>;
+  if (status.installed && status.upToDate) {
+    return (
+      <div className="muted" style={{ fontSize: 13, display: "flex", gap: 8, flexWrap: "wrap", padding: "0 4px" }}>
+        <span>✓ Hexvane plugin installed</span>
+        <button className="link muted" disabled={working} onClick={() => act(uninstallPlugin)}>Remove</button>
+        {errorLine}
+      </div>
+    );
+  }
+  return (
+    <div className="panel">
+      {!status.bepinex ? (
+        <>
+          <div style={{ color: "var(--warning)", fontWeight: 600 }}>● BepInEx needed</div>
+          <div className="muted" style={{ fontSize: 13 }}>The cheats run as a BepInEx 5 plugin, and BepInEx isn't installed in this game yet. Install it, start the game once, then come back.</div>
+          <button className="btn btn-secondary btn-sm" style={{ alignSelf: "flex-start", fontFamily: "inherit" }} onClick={() => openUrl(BEPINEX_GUIDE)}>How to install BepInEx</button>
+          <button className="link muted" style={{ alignSelf: "flex-start" }} onClick={check}>Check again</button>
+        </>
+      ) : (
+        <>
+          <div style={{ color: "var(--warning)", fontWeight: 600 }}>● {status.installed ? "Plugin update ready" : "Plugin not installed"}</div>
+          <div className="muted" style={{ fontSize: 13 }}>
+            {status.installed ? "A newer Hexvane plugin comes with this version of the app." : "The cheats run through a small Hexvane plugin in the game's BepInEx folder."} Close the game before installing.
+          </div>
+          <button className="btn btn-primary" style={{ alignSelf: "flex-start" }} disabled={working} onClick={() => act(installPlugin)}>
+            {working ? "Installing…" : status.installed ? "Update plugin" : "Install plugin"}
+          </button>
+        </>
+      )}
+      {errorLine}
+    </div>
+  );
+}
+
 // Hotkeys live in the app (localStorage). useGameHotkeys registers them system-wide, so they work whichever window has focus.
 // Not F1: BepInEx's Configuration Manager, common in modded games, opens on F1.
 const HOTKEYS = [
-  { cheat: "health", storageKey: "hotkey:gyk:health", initial: "F7", command: "toggle health" },
-  { cheat: "stamina", storageKey: "hotkey:gyk:stamina", initial: "F8", command: "toggle stamina" },
-  { cheat: "panic", storageKey: "hotkey:Disable all cheats", initial: "Ctrl + F12", command: "off" }, // set in Settings > Hotkeys
+  { cheat: "health", title: "Unlimited Health", storageKey: "hotkey:gyk:health", initial: "F7", command: "toggle health" },
+  { cheat: "stamina", title: "Unlimited Stamina", storageKey: "hotkey:gyk:stamina", initial: "F8", command: "toggle stamina" },
+  { cheat: "panic", title: "All cheats", storageKey: "hotkey:Disable all cheats", initial: "Ctrl + F12", command: "off" }, // set in Settings > Hotkeys
 ];
+
+/** Runs a hotkey's command, then shows the toast with the cheat's new state. */
+function fireHotkey(h: (typeof HOTKEYS)[number]) {
+  trainerSend(h.command)
+    .then(() => trainerSend("state"))
+    .then((s) => showToast(h.title, h.cheat !== "panic" && !!JSON.parse(s)[h.cheat]))
+    .catch(() => {});
+}
 
 /**
  * While Graveyard Keeper is running, holds the cheat hotkeys as global shortcuts and forwards presses to the plugin.
@@ -142,7 +207,7 @@ export function useGameHotkeys() {
         for (const [i, h] of HOTKEYS.entries()) {
           // "Ctrl + Shift + F7" (app label) -> "Ctrl+Shift+F7" (accelerator)
           await register(keys[i].replace(/\s/g, ""), (e) => {
-            if (e.state === "Pressed") trainerSend(h.command).catch(() => {});
+            if (e.state === "Pressed") fireHotkey(h);
           }).catch(() => {}); // taken by another app or not a valid key: skip it
         }
         trainerSend(`sound ${sound ? 1 : 0}`).catch(() => {});

@@ -17,14 +17,32 @@
         "height": 800,
         "decorations": false,
         "minWidth": 1024,
-        "minHeight": 640
+        "minHeight": 640,
+        "label": "main"
+      },
+      {
+        "label": "toast",
+        "title": "Hexvane toast",
+        "width": 340,
+        "height": 72,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "focus": false,
+        "shadow": false,
+        "x": 0,
+        "y": 0
       }
     ],
     "security": {
       "csp": null,
       "assetProtocol": {
         "enable": true,
-        "scope": ["**/appcache/librarycache/**"]
+        "scope": [
+          "**/appcache/librarycache/**"
+        ]
       }
     }
   },

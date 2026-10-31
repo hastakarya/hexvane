@@ -82,7 +82,7 @@ export function Auth({ onGuest }: { onGuest: () => void }) {
       <div className="split-brand" style={{ background: `radial-gradient(circle at 40% 45%, ${signup ? "#0b4d45" : "#2e4a0a"}, #0f120d 70%)` }}>
         <Logo size={48} />
         <h1 className="split-title">{signup ? "100% free. No subscriptions." : "3,000+ single-player games. One app."}</h1>
-        <p className="split-body">{signup ? "Every cheat, hotkey and the overlay are free. If Hexvane helps you, you can support it with a donation." : "Sign in to sync favorites, hotkeys and settings across your PCs."}</p>
+        <p className="split-body">{signup ? "Every cheat and hotkey is free. If Hexvane helps you, you can support it with a donation." : "Sign in to sync favorites, hotkeys and settings across your PCs."}</p>
       </div>
       <form className="auth-form" onSubmit={submit} noValidate>
         <h1>{signup ? "Create your account" : "Welcome back"}</h1>

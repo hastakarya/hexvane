@@ -17,7 +17,7 @@ Hexvane app  ──  one text line over 127.0.0.1:47821  ──>  plugin inside 
 (React page)      (src-tauri/src/trainer.rs)              (Hexvane.Bridge.dll)          (health, money, inventory)
 ```
 
-1. The game's mod loader (BepInEx) loads `Hexvane.Bridge.dll` when the game starts.
+1. Hexvane installs `Hexvane.Bridge.dll` into the game's BepInEx folder (one click on the game page), and BepInEx loads it when the game starts.
 2. The plugin listens on `127.0.0.1:47821`. Only this PC can reach it.
 3. The app sends one command per request, such as `set health 1`, and gets one line back: a result, or `err <message>`.
 4. The plugin applies the change through the game's own code, on Unity's main thread.
