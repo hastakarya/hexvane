@@ -17,7 +17,7 @@ A free desktop trainer app for **single-player PC games**. Hexvane finds the gam
 | GOG artwork | Not started (gradient placeholder) |
 | Library: search, store filter | Working |
 | Play button: starts the game through Steam or Epic, or its exe for GOG | Working (Steam tested; Epic and GOG untested) |
-| Game page: cheat toggles, sliders, hotkey chips | UI only |
+| Library cards: "Cheats ready", "Coming soon" (cannot be opened) or "Online — blocked" | Working |
 | Rebind hotkeys (click a key, press a new combination), saved locally | Working |
 | Block online / anti-cheat games | Hard-coded name list |
 | Settings: general, hotkeys, overlay (with live preview), about (with updates) | UI only, choices saved locally where noted |
@@ -26,7 +26,7 @@ A free desktop trainer app for **single-player PC games**. Hexvane finds the gam
 | Onboarding (3 steps, first launch only) | Working |
 | Sign in / sign up forms with validation, or continue as guest | Forms only: no account server yet |
 | Graveyard Keeper cheats: unlimited health, unlimited stamina, add money, give items | Working (needs the Hexvane Bridge plugin, see below) |
-| Cheats for other games | Not started (placeholders) |
+| Cheats for other games | Not started (cards show "Coming soon") |
 | In-game hotkeys for cheats | Not started |
 | In-game overlay | Not started (settings preview only) |
 
@@ -128,7 +128,7 @@ Detection only reads local files and registry keys. The one network use is the a
 
 Search the code for `shortcut:` to find them.
 
-- Every game except Graveyard Keeper shows the same demo cheat list.
+- Non-game Steam apps (Aseprite, Wallpaper Engine…) are hidden by a hand-picked list of app ids.
 - The Graveyard Keeper plugin is installed by hand; the app doesn't install it yet.
 - The online / anti-cheat blocklist is a short hard-coded list of names.
 

@@ -13,10 +13,6 @@ export interface Game {
 /** Artwork as a URL the webview can load: Epic art is already https, Steam art is a local file. */
 export const artUrl = (path: string | null) => (!path ? null : path.startsWith("https://") ? path : convertFileSrc(path));
 
-export type Cheat =
-  | { kind: "toggle"; name: string; key: string; section: string }
-  | { kind: "slider"; name: string; min: number; max: number; step: number; value: number; unit: string; section: string };
-
 export const detectGames = () => invoke<Game[]>("detect_games");
 
 export const launchGame = (id: string) => invoke<void>("launch_game", { id });
@@ -27,16 +23,6 @@ export const trainerSend = (command: string) => invoke<string>("trainer_send", {
 // shortcut: hard-coded list, replace with a server-side blocklist (online / anti-cheat titles) before release
 const BLOCKED = ["counter-strike", "valorant", "apex legends", "fortnite", "rust", "dota 2", "pubg", "rainbow six", "call of duty", "destiny 2", "overwatch"];
 export const isBlocked = (g: Game) => BLOCKED.some((b) => g.name.toLowerCase().includes(b));
-
-// shortcut: placeholder cheats for every game until the cheat engine and per-game definitions exist
-export const demoCheats: Cheat[] = [
-  { kind: "toggle", name: "Unlimited Health", key: "F1", section: "Player" },
-  { kind: "toggle", name: "Unlimited Stamina", key: "F2", section: "Player" },
-  { kind: "toggle", name: "No Reload", key: "F3", section: "Player" },
-  { kind: "slider", name: "Game Speed", min: 0.5, max: 3, step: 0.1, value: 1, unit: "x", section: "Player" },
-  { kind: "toggle", name: "Unlimited Ammo", key: "F4", section: "Inventory" },
-  { kind: "slider", name: "Credits", min: 0, max: 100000, step: 1000, value: 50000, unit: "", section: "Inventory" },
-];
 
 const COVERS = [
   ["#2e4a0a", "#0f5e6b"], ["#8c2b2b", "#3b1d0f"], ["#d9268c", "#2b1d6b"], ["#3d3d4a", "#121218"],

@@ -114,18 +114,6 @@ export function ToggleRow({ title, desc, initial = true, keyLabel }: { title: st
   );
 }
 
-export function SliderRow({ name, min, max, step, value, unit }: { name: string; min: number; max: number; step: number; value: number; unit: string }) {
-  const [v, setV] = useState(value);
-  const shown = step < 1 ? v.toFixed(1) : v.toLocaleString();
-  return (
-    <div className="row">
-      <div className="row-title">{name}</div>
-      <input className="slider" type="range" min={min} max={max} step={step} value={v} onChange={(e) => setV(Number(e.target.value))} aria-label={name} />
-      <span className="slider-value">{shown}{unit}</span>
-    </div>
-  );
-}
-
 export function SelectRow({ title, desc, options }: { title: string; desc: string; options: string[] }) {
   const [value, setValue] = useState(options[0]);
   return (

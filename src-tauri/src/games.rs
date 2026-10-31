@@ -23,8 +23,21 @@ pub struct Art {
     pub logo: Option<String>,
 }
 
-// Steam "apps" that are runtimes, not games
-const STEAM_SKIP: &[&str] = &["228980", "1070560", "1391110", "1628350", "1493710"];
+// Steam "apps" that are runtimes or software, not games
+// shortcut: hand-picked list (Steam's manifests don't say what is software); read the app type from appinfo.vdf to catch all of them
+const STEAM_SKIP: &[&str] = &[
+    "228980", "1070560", "1391110", "1628350", "1493710", // runtimes
+    "431730",  // Aseprite
+    "431960",  // Wallpaper Engine
+    "365670",  // Blender
+    "280680",  // Krita
+    "1905180", // OBS Studio
+    "250820",  // SteamVR
+    "993090",  // Lossless Scaling
+    "629520",  // Soundpad
+    "223850",  // 3DMark
+    "480",     // Spacewar (Steam test app)
+];
 
 #[tauri::command]
 pub fn detect_games() -> Vec<Game> {

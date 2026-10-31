@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
-import { artUrl, coverFor, demoCheats, detectGames, isBlocked, launchGame, type Game, type Store } from "./games";
+import { artUrl, coverFor, detectGames, isBlocked, launchGame, type Game, type Store } from "./games";
 import { GraveyardKeeperTrainer, hasTrainer } from "./Trainer";
-import { Art, Avatar, CoffeeIcon, Dropdown, ErrorBoundary, KeyRow, Logo, SelectRow, SliderRow, TitleBar, Toggle, ToggleRow, useStored } from "./ui";
+import { Art, Avatar, CoffeeIcon, Dropdown, ErrorBoundary, KeyRow, Logo, SelectRow, TitleBar, Toggle, ToggleRow, useStored } from "./ui";
 import { Auth, Onboarding } from "./Welcome";
 import "./styles.css";
 
@@ -106,16 +106,18 @@ function Library({ games, error, onRescan, onOpen }: { games: Game[] | null; err
         {shown.map((g) => {
           const { background, monogram } = coverFor(g);
           const blocked = isBlocked(g);
+          const soon = !blocked && !hasTrainer(g);
           return (
-            <button key={g.id} className="card" onClick={() => onOpen(g)}>
-              <div className="cover" style={{ background, opacity: blocked ? 0.45 : 1 }}>
+            <button key={g.id} className={`card ${soon ? "soon" : ""}`} disabled={soon} onClick={() => onOpen(g)} title={soon ? "Cheats for this game aren't available yet" : undefined}>
+              <div className="cover" style={{ background, opacity: blocked || soon ? 0.45 : 1 }}>
                 <span className="monogram">{monogram}</span>
                 <Art className="cover-img" src={artUrl(g.art.cover)} />
+                {soon && <span className="cover-badge">Coming soon</span>}
               </div>
               <div className="card-info">
                 <div className="card-title" title={g.name}>{g.name}</div>
-                <div className="card-meta" style={{ color: blocked ? "var(--danger)" : "var(--aqua)" }}>
-                  {blocked ? "⛔ Online — blocked" : `● ${g.store}`}
+                <div className="card-meta" style={{ color: blocked ? "var(--danger)" : soon ? "var(--text-faint)" : "var(--aqua)" }}>
+                  {blocked ? "⛔ Online — blocked" : soon ? `○ ${g.store} · No cheats yet` : `● ${g.store} · Cheats ready`}
                 </div>
               </div>
             </button>
@@ -128,7 +130,6 @@ function Library({ games, error, onRescan, onOpen }: { games: Game[] | null; err
 
 function GameDetail({ game, onBack }: { game: Game; onBack: () => void }) {
   const blocked = isBlocked(game);
-  const sections = [...new Set(demoCheats.map((c) => c.section))];
   return (
     <div>
       <div className="hero" style={{ background: coverFor(game).background }}>
@@ -153,27 +154,9 @@ function GameDetail({ game, onBack }: { game: Game; onBack: () => void }) {
             <p className="muted">{game.name} is an online game or uses anti-cheat. Hexvane never attaches to online or anti-cheat games, to keep your account safe.</p>
           </div>
         </div>
-      ) : hasTrainer(game) ? (
-        <GraveyardKeeperTrainer />
       ) : (
-        <div className="detail-body">
-          <div className="cheats">
-            {sections.map((s) => (
-              <div key={s} style={{ display: "contents" }}>
-                <div className="section-label">{s.toUpperCase()}</div>
-                {demoCheats.filter((c) => c.section === s).map((c) =>
-                  c.kind === "toggle" ? <ToggleRow key={c.name} title={c.name} keyLabel={c.key} initial={false} /> : <SliderRow key={c.name} {...c} />,
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="aside">
-            <div className="panel">
-              <div style={{ color: "var(--warning)", fontWeight: 600 }}>● Preview only</div>
-              <div className="muted" style={{ fontSize: 13 }}>These cheats are placeholders. Toggles don't change the game yet.</div>
-            </div>
-          </div>
-        </div>
+        // Only games with a trainer can be opened from the library (see hasTrainer)
+        <GraveyardKeeperTrainer />
       )}
     </div>
   );
