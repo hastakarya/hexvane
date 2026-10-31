@@ -180,7 +180,8 @@ h1 { font-size: 28px; }
 .blocked { background: #1a1218; border: 1px solid rgba(255, 77, 77, .33); border-radius: 16px; padding: 32px; max-width: 520px; }
 
 /* Onboarding and sign-in (split screens) */
-.titlebar.plain { background: var(--bg-base); }
+/* Floats over full-bleed screens so their art reaches the top edge */
+.titlebar.plain { position: fixed; top: 0; left: 0; right: 0; z-index: 20; background: transparent; }
 .split { flex: 1; min-height: 0; display: flex; }
 .split-art { flex: 1; display: flex; align-items: center; justify-content: center; transition: background .3s; }
 .split-glyph { width: 200px; height: 200px; color: rgba(255, 255, 255, .25); }
