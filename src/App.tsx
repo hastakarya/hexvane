@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
 import { artUrl, coverFor, demoCheats, detectGames, isBlocked, type Game, type Store } from "./games";
 import { Art, Avatar, CoffeeIcon, Dropdown, ErrorBoundary, KeyRow, Logo, SelectRow, SliderRow, TitleBar, Toggle, ToggleRow, useStored } from "./ui";
+import { Auth, Onboarding } from "./Welcome";
 import "./styles.css";
 
 type View = { name: "library" | "settings" | "account" } | { name: "game"; game: Game };
@@ -17,6 +18,8 @@ export default function App() {
   const [games, setGames] = useState<Game[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [avatar, setAvatar] = useStored<string | null>("avatar", null);
+  const [onboarded, setOnboarded] = useStored("onboarded", false);
+  const [entered, setEntered] = useStored("entered", false);
 
   const scan = () => {
     setGames(null);
@@ -26,6 +29,9 @@ export default function App() {
   useEffect(scan, []);
 
   const active = view.name === "game" ? "library" : view.name;
+
+  if (!onboarded) return <><TitleBar plain /><Onboarding onDone={() => setOnboarded(true)} /></>;
+  if (!entered) return <><TitleBar plain /><Auth onGuest={() => setEntered(true)} /></>;
 
   return (
     <>
@@ -52,7 +58,7 @@ export default function App() {
           {view.name === "library" && <Library games={games} error={error} onRescan={scan} onOpen={(game) => setView({ name: "game", game })} />}
           {view.name === "game" && <GameDetail game={view.game} onBack={() => setView({ name: "library" })} />}
           {view.name === "settings" && <Settings />}
-          {view.name === "account" && <Account avatar={avatar} onAvatar={setAvatar} />}
+          {view.name === "account" && <Account avatar={avatar} onAvatar={setAvatar} onSignIn={() => setEntered(false)} />}
         </ErrorBoundary>
       </main>
     </div>
@@ -269,7 +275,7 @@ function ButtonRow({ title, desc, label }: { title: string; desc: string; label:
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 
-function Account({ avatar, onAvatar }: { avatar: string | null; onAvatar: (src: string | null) => void }) {
+function Account({ avatar, onAvatar, onSignIn }: { avatar: string | null; onAvatar: (src: string | null) => void; onSignIn: () => void }) {
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const pick = (file: File | undefined) => {
     if (!file) return;
@@ -295,7 +301,7 @@ function Account({ avatar, onAvatar }: { avatar: string | null; onAvatar: (src: 
           <input type="file" accept="image/*" hidden onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
         </label>
         {avatar && <button className="btn btn-secondary" onClick={() => onAvatar(null)}>Use logo</button>}
-        <button className="btn btn-primary">Sign in</button>
+        <button className="btn btn-primary" onClick={onSignIn}>Sign in</button>
       </div>
       <div className="donate">
         <CoffeeIcon size={44} color="var(--warning)" />

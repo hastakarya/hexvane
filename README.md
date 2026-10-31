@@ -22,15 +22,18 @@ A free desktop trainer app for **single-player PC games**. Hexvane finds the gam
 | Settings: general, hotkeys, overlay (with live preview), about (with updates) | UI only, choices saved locally where noted |
 | Account page: profile picture (Hex H logo by default, replaceable), donation card | Picture works, rest UI only |
 | Custom dark title bar with own minimise / maximise / close | Working |
+| Onboarding (3 steps, first launch only) | Working |
+| Sign in / sign up forms with validation, or continue as guest | Forms only: no account server yet |
 | Cheat engine (memory read/write, hotkeys) | Not started |
-| In-game overlay, onboarding, sign-in | Not started |
+| In-game overlay | Not started (settings preview only) |
 
 ## Tech stack
 
 - [Tauri 2](https://tauri.app) app: Rust backend, WebView2 frontend
 - React 19 + TypeScript, built with Vite
 - Plain CSS with design tokens in `src/styles.css`
-- Fonts: Space Grotesk (headings), JetBrains Mono (keys and values), both bundled under the SIL Open Font License
+- Fonts: Space Grotesk (headings), Inter (body text), JetBrains Mono (keys and values), all bundled under the SIL Open Font License
+- App icon: generated from `src-tauri/icons/app-icon.svg` with `npx tauri icon src-tauri/icons/app-icon.svg`
 
 ## Requirements
 
