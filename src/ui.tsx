@@ -21,11 +21,12 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { COFFEE_PATH } from "./assets/coffee-path";
 
 /** Replaces the white Windows title bar (window decorations are off in tauri.conf.json). */
-export function TitleBar({ plain = false }: { plain?: boolean }) {
+/** `plain`: floats fully transparent (full-bleed screens). `overlay`: transparent only right of the sidebar, over a banner. */
+export function TitleBar({ plain = false, overlay = false }: { plain?: boolean; overlay?: boolean }) {
   const win = getCurrentWindow();
   const icon = (d: string) => <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d={d} fill="none" stroke="currentColor" strokeWidth="1.1" /></svg>;
   return (
-    <div className={`titlebar ${plain ? "plain" : ""}`} data-tauri-drag-region>
+    <div className={`titlebar ${plain ? "plain" : ""} ${overlay ? "overlay" : ""}`} data-tauri-drag-region>
       <button className="titlebar-btn" aria-label="Minimize" onClick={() => win.minimize()}>{icon("M0 5.5h10")}</button>
       <button className="titlebar-btn" aria-label="Maximize" onClick={() => win.toggleMaximize()}>{icon("M.5.5h9v9h-9z")}</button>
       <button className="titlebar-btn close" aria-label="Close" onClick={() => win.close()}>{icon("M0 0l10 10M10 0 0 10")}</button>

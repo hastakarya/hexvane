@@ -35,7 +35,7 @@ export default function App() {
 
   return (
     <>
-    <TitleBar />
+    <TitleBar overlay={view.name === "game"} />
     <div className="app">
       <aside className="sidebar">
         <div className="brand"><Logo /> Hexvane</div>
