@@ -19,6 +19,11 @@ export type Cheat =
 
 export const detectGames = () => invoke<Game[]>("detect_games");
 
+export const launchGame = (id: string) => invoke<void>("launch_game", { id });
+
+/** One command to the in-game Hexvane Bridge plugin. Rejects with "not running" when the game isn't up. */
+export const trainerSend = (command: string) => invoke<string>("trainer_send", { command });
+
 // shortcut: hard-coded list, replace with a server-side blocklist (online / anti-cheat titles) before release
 const BLOCKED = ["counter-strike", "valorant", "apex legends", "fortnite", "rust", "dota 2", "pubg", "rainbow six", "call of duty", "destiny 2", "overwatch"];
 export const isBlocked = (g: Game) => BLOCKED.some((b) => g.name.toLowerCase().includes(b));

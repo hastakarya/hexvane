@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
-import { artUrl, coverFor, demoCheats, detectGames, isBlocked, type Game, type Store } from "./games";
+import { artUrl, coverFor, demoCheats, detectGames, isBlocked, launchGame, type Game, type Store } from "./games";
+import { GraveyardKeeperTrainer, hasTrainer } from "./Trainer";
 import { Art, Avatar, CoffeeIcon, Dropdown, ErrorBoundary, KeyRow, Logo, SelectRow, SliderRow, TitleBar, Toggle, ToggleRow, useStored } from "./ui";
 import { Auth, Onboarding } from "./Welcome";
 import "./styles.css";
@@ -141,7 +142,7 @@ function GameDetail({ game, onBack }: { game: Game; onBack: () => void }) {
           <h1>{game.name}</h1>
           <div style={{ color: "#bfc8b9", fontSize: 13 }}>{game.store} · {game.installDir}</div>
         </div>
-        {!blocked && <button className="btn btn-play" style={{ position: "relative" }} disabled title="Launching comes with the cheat engine">▶ PLAY</button>}
+        {!blocked && <button className="btn btn-play" style={{ position: "relative" }} onClick={() => launchGame(game.id).catch((e) => alert(`Couldn't start ${game.name}: ${e}`))}>▶ PLAY</button>}
       </div>
 
       {blocked ? (
@@ -152,6 +153,8 @@ function GameDetail({ game, onBack }: { game: Game; onBack: () => void }) {
             <p className="muted">{game.name} is an online game or uses anti-cheat. Hexvane never attaches to online or anti-cheat games, to keep your account safe.</p>
           </div>
         </div>
+      ) : hasTrainer(game) ? (
+        <GraveyardKeeperTrainer />
       ) : (
         <div className="detail-body">
           <div className="cheats">

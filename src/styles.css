@@ -114,6 +114,10 @@ h1 { font-size: 28px; }
 .btn-secondary:hover { background: var(--border); }
 .btn-play { background: linear-gradient(90deg, var(--aqua), #00a88f); color: var(--on-lime); font-family: var(--font-display); font-weight: 700; font-size: 16px; letter-spacing: 1px; padding: 16px 40px; border-radius: 12px; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn-sm { padding: 7px 12px; font-size: 13px; font-family: var(--font-mono); }
+.row .btn-secondary { background: var(--bg-raised); }
+.row .btn-secondary:hover:not(:disabled) { border-color: var(--lime); }
+.faint { color: var(--text-faint); }
 
 /* Inputs, chips */
 .search { width: 320px; height: 40px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text); padding: 0 14px; font: inherit; }

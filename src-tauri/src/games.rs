@@ -171,8 +171,40 @@ fn gog_games() -> Vec<Game> {
         .collect()
 }
 
+/// The launcher URL that starts a game, or None for GOG (started from its exe instead).
+fn launch_url(id: &str) -> Option<String> {
+    let (store, key) = id.split_once(':')?;
+    match store {
+        "steam" => Some(format!("steam://rungameid/{key}")),
+        "epic" => Some(format!("com.epicgames.launcher://apps/{key}?action=launch&silent=true")),
+        _ => None,
+    }
+}
+
+/// Starts a game through its store's launcher (Steam, Epic), or its exe for GOG.
+#[tauri::command]
+pub fn launch_game(id: String) -> Result<(), String> {
+    if let Some(url) = launch_url(&id) {
+        return tauri_plugin_opener::open_url(url, None::<&str>).map_err(|e| e.to_string());
+    }
+    let gog_id = id.strip_prefix("gog:").ok_or("unknown store")?;
+    let key = RegKey::predef(HKEY_LOCAL_MACHINE)
+        .open_subkey(format!("SOFTWARE\\WOW6432Node\\GOG.com\\Games\\{gog_id}"))
+        .map_err(|_| "game not found in GOG's registry")?;
+    let exe: String = key.get_value("exe").map_err(|_| "GOG has no exe for this game")?;
+    let dir: String = key.get_value("workingDir").or_else(|_| key.get_value("path")).unwrap_or_default();
+    std::process::Command::new(exe).current_dir(dir).spawn().map(|_| ()).map_err(|e| e.to_string())
+}
+
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn builds_launch_urls() {
+        assert_eq!(launch_url("steam:599140").as_deref(), Some("steam://rungameid/599140"));
+        assert_eq!(launch_url("epic:Fortnite").as_deref(), Some("com.epicgames.launcher://apps/Fortnite?action=launch&silent=true"));
+        assert_eq!(launch_url("gog:123"), None);
+    }
+
     use super::*;
 
     #[test]

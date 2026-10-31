@@ -4,7 +4,7 @@ A free desktop trainer app for **single-player PC games**. Hexvane finds the gam
 
 > Hexvane never attaches to online games or games with anti-cheat. That keeps your accounts safe and keeps other players unaffected.
 
-**Status:** early app shell. Game detection and the interface work. The cheats are placeholders: toggles don't change any game yet.
+**Status:** early. Game detection and the interface work. **Graveyard Keeper** has real cheats through a BepInEx plugin; every other game still shows placeholder cheats.
 
 ## Features
 
@@ -16,6 +16,7 @@ A free desktop trainer app for **single-player PC games**. Hexvane finds the gam
 | Official Epic artwork (cover, banner, logo when available) from the launcher's catalog cache | Working |
 | GOG artwork | Not started (gradient placeholder) |
 | Library: search, store filter | Working |
+| Play button: starts the game through Steam or Epic, or its exe for GOG | Working (Steam tested; Epic and GOG untested) |
 | Game page: cheat toggles, sliders, hotkey chips | UI only |
 | Rebind hotkeys (click a key, press a new combination), saved locally | Working |
 | Block online / anti-cheat games | Hard-coded name list |
@@ -24,7 +25,9 @@ A free desktop trainer app for **single-player PC games**. Hexvane finds the gam
 | Custom dark title bar with own minimise / maximise / close | Working |
 | Onboarding (3 steps, first launch only) | Working |
 | Sign in / sign up forms with validation, or continue as guest | Forms only: no account server yet |
-| Cheat engine (memory read/write, hotkeys) | Not started |
+| Graveyard Keeper cheats: unlimited health, unlimited stamina, add money, give items | Working (needs the Hexvane Bridge plugin, see below) |
+| Cheats for other games | Not started (placeholders) |
+| In-game hotkeys for cheats | Not started |
 | In-game overlay | Not started (settings preview only) |
 
 ## Tech stack
@@ -76,6 +79,18 @@ cd src-tauri && cargo test
 npx tsc --noEmit
 ```
 
+## Graveyard Keeper trainer
+
+Graveyard Keeper is a Unity game, so its cheats run as a [BepInEx 5](https://github.com/BepInEx/BepInEx) plugin, `trainers/GraveyardKeeper`. The plugin listens on `127.0.0.1:47821` (this PC only) and the app sends it one text command per request: `state`, `set health 0|1`, `set stamina 0|1`, `money <amount>` (the game counts in silver: 100 = 1 gold), `give <item id> <count>`, `items` (or `items all` to skip the filter).
+
+To build and install it you need the [.NET 8 SDK](https://dotnet.microsoft.com) (`winget install Microsoft.DotNet.SDK.8`) and BepInEx 5 already installed in the game:
+
+```bash
+cd trainers/GraveyardKeeper && dotnet build -c Release
+```
+
+Copy `bin/Release/net472/Hexvane.Bridge.dll` into `<game folder>/BepInEx/plugins/Hexvane/`, with the game closed. To uninstall, delete that folder. If the game is not in the default Steam folder, build with `-p:GameDir="<game folder>"`.
+
 ## Build an installer
 
 ```bash
@@ -91,10 +106,12 @@ src/                  React frontend
   App.tsx             App shell, sidebar and all screens
   ui.tsx              Shared pieces: logo, toggle, slider, dropdown, artwork
   games.ts            Game types, Tauri calls, placeholder cheats, blocklist
+  Trainer.tsx         Graveyard Keeper cheat page
   styles.css          Design tokens (Toxic lime palette) and styles
   assets/fonts/       Bundled fonts
 src-tauri/            Rust backend
   src/games.rs        Steam / Epic / GOG detection and Steam / Epic artwork lookup, with tests
+  src/trainer.rs      Sends commands to the in-game plugin
   src/lib.rs          Tauri setup and commands
   tauri.conf.json     Window, bundle and asset-protocol settings
 ```
@@ -111,7 +128,8 @@ Detection only reads local files and registry keys. The one network use is the a
 
 Search the code for `shortcut:` to find them.
 
-- Every game shows the same demo cheat list.
+- Every game except Graveyard Keeper shows the same demo cheat list.
+- The Graveyard Keeper plugin is installed by hand; the app doesn't install it yet.
 - The online / anti-cheat blocklist is a short hard-coded list of names.
 
 ## Design
